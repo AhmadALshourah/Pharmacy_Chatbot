@@ -1,0 +1,1 @@
+A specialized Retrieval-Augmented Generation (RAG) chatbot designed to provide accurate medical information based on specific pharmaceutical documentation. The system combines modern LLM capabilities with a local knowledge base to minimize hallucinations and ensure context-specific answers.
