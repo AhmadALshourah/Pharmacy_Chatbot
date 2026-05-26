@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 💊 Pharmacy Chatbot
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://python.org)
@@ -224,3 +225,6 @@ The `demo.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860))
 ## Disclaimer
 
 > This chatbot is for **informational purposes only** and does not constitute medical advice. Always consult a licensed pharmacist or physician before making any medical decision.
+=======
+A specialized Retrieval-Augmented Generation (RAG) chatbot designed to provide accurate medical information based on specific pharmaceutical documentation. The system combines modern LLM capabilities with a local knowledge base to minimize hallucinations and ensure context-specific answers.
+>>>>>>> 5438b74d5c84802733271132c3a5dae44f90a721
