@@ -1,0 +1,146 @@
+2026-05-26 22:55:55 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 22:55:55 [INFO] Loading FAISS index from cache...
+2026-05-26 22:55:55 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 22:56:00 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 22:56:05 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 22:56:05 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 22:56:34 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 22:56:34 [INFO] Loading FAISS index from cache...
+2026-05-26 22:56:34 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 22:56:38 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 22:56:39 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 22:56:40 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 22:56:41 [INFO] HTTP Request: GET http://localhost:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 22:56:43 [INFO] HTTP Request: HEAD http://localhost:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:56:46 [INFO] HTTP Request: HEAD http://localhost:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:56:48 [INFO] HTTP Request: HEAD http://localhost:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:56:51 [INFO] HTTP Request: HEAD http://localhost:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:56:54 [INFO] HTTP Request: HEAD http://localhost:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:14 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 22:57:14 [INFO] Loading FAISS index from cache...
+2026-05-26 22:57:14 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 22:57:17 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 22:57:18 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 22:57:18 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:18 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 22:57:19 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:19 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 22:57:19 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:20 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:20 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:24 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 22:57:24 [INFO] Loading FAISS index from cache...
+2026-05-26 22:57:24 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 22:57:28 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 22:57:29 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 22:57:29 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:29 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:30 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:30 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 22:57:30 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 22:57:30 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:57:31 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:58:31 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 22:58:31 [INFO] Loading FAISS index from cache...
+2026-05-26 22:58:31 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 22:58:35 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 22:58:35 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 22:58:35 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:58:36 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 22:58:36 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:58:36 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 22:58:36 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:58:37 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 22:58:37 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:00:34 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:00:34 [INFO] Loading FAISS index from cache...
+2026-05-26 23:00:34 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:00:41 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:00:41 [INFO] Loading FAISS index from cache...
+2026-05-26 23:00:41 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:00:53 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 23:00:53 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 23:01:02 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 23:01:02 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 23:01:02 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 23:01:02 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:01:03 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:01:03 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:01:03 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:01:04 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:01:05 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:01:05 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:03:26 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:03:26 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:03:28 [INFO] Loading FAISS index from cache...
+2026-05-26 23:03:28 [INFO] Loading FAISS index from cache...
+2026-05-26 23:03:28 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:03:51 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 23:03:51 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:03:52 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:03:52 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:03:53 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:03:53 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 23:03:53 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 23:03:53 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:03:54 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:03:55 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:06:24 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:06:26 [INFO] Loading FAISS index from cache...
+2026-05-26 23:06:26 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:06:34 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 23:06:41 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 23:06:41 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 23:06:41 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:06:42 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:06:42 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:06:42 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:06:43 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:06:43 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:07:52 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:07:52 [INFO] Loading FAISS index from cache...
+2026-05-26 23:07:52 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:07:56 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 23:07:56 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:07:56 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 23:07:56 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:07:57 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:07:57 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:07:57 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 23:07:57 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:07:58 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:11:56 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:11:56 [INFO] Loading FAISS index from cache...
+2026-05-26 23:11:56 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:12:01 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 23:12:01 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:12:01 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:12:01 [INFO] HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+2026-05-26 23:12:02 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:12:02 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/gradio/initiated "HTTP/1.1 200 OK"
+2026-05-26 23:12:02 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:12:03 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:12:03 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 500 Internal Server Error"
+2026-05-26 23:13:43 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:13:43 [INFO] Loading FAISS index from cache...
+2026-05-26 23:13:43 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:13:49 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/https%3A/api.gradio.app/gradio-initiated-analytics "HTTP/1.1 200 OK"
+2026-05-26 23:13:49 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:15:24 [INFO] Database: 2 doc(s), 757 chunks
+2026-05-26 23:15:24 [INFO] Loading FAISS index from cache...
+2026-05-26 23:15:24 [INFO] FAISS ready — 757 vectors (1536D)
+2026-05-26 23:15:28 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2026-05-26 23:15:28 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/https%3A/api.gradio.app/gradio-initiated-analytics "HTTP/1.1 200 OK"
+2026-05-26 23:15:29 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 200 OK"
+2026-05-26 23:15:29 [INFO] HTTP Request: HEAD https://huggingface.co/api/telemetry/https%3A/api.gradio.app/gradio-launched-telemetry "HTTP/1.1 200 OK"
+2026-05-26 23:15:29 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2026-05-26 23:16:15 [INFO] HTTP Request: POST https://api.openai.com/v1/audio/transcriptions "HTTP/1.1 200 OK"
+2026-05-26 23:16:15 [INFO] Transcribed audio: 'You'
+2026-05-26 23:16:38 [INFO] Query (25 chars): 'What is Aspirin used for?'
+2026-05-26 23:16:40 [INFO] HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-26 23:16:43 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-26 23:16:47 [INFO] Response: 9245ms | sources=['Aspirin.pdf', 'Medic.pdf']
+2026-05-26 23:17:07 [INFO] Query (30 chars): 'ما هو الأسبرين وما استخداماته؟'
+2026-05-26 23:17:08 [INFO] HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-05-26 23:17:11 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-26 23:17:14 [INFO] Response: 6928ms | sources=['Aspirin.pdf', 'Medic.pdf']
