@@ -1,0 +1,35 @@
+# Secrets — NEVER commit these
+.env
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Generated / large files
+pharmacy.db
+pharmacy.faiss
+pharmacy.faiss.meta
+logs/
+
+# Test / lint cache
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
