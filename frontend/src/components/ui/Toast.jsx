@@ -2,10 +2,12 @@ import { useContext } from 'react';
 import { ToastCtx } from '../../contexts/ToastContext';
 import Icon from './Icon';
 
+// L8: warn gets a circle-with-! icon; error keeps the triangle-with-! (alert)
+// so the two types are visually distinct, not just by colour.
 const ICONS = {
   success: 'check',
   error:   'alert',
-  warn:    'alert',
+  warn:    'warnCircle',
   info:    'bell',
 };
 

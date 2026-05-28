@@ -6,6 +6,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores(['dist']),
+  // vite.config.js runs in Node, not the browser — give it Node globals
+  {
+    files: ['vite.config.js'],
+    languageOptions: { globals: { process: 'readonly' } },
+  },
   {
     files: ['**/*.{js,jsx}'],
     extends: [

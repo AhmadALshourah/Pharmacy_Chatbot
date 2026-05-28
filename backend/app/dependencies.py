@@ -19,9 +19,9 @@ def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(_beare
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Tokens issued before the type field was added default to admin for
-    # backwards compatibility; user tokens are always explicitly typed.
-    if payload.get("type", "admin") != "admin":
+    # C6: require an explicit "admin" type claim — no default fallback.
+    # Any token without this field is rejected rather than silently promoted.
+    if payload.get("type") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
@@ -75,7 +75,15 @@ def get_current_principal(credentials: HTTPAuthorizationCredentials = Depends(_b
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token_type = payload.get("type", "admin")
+    # C6: type must be explicitly present — no default.
+    token_type = payload.get("type")
+    if token_type not in ("admin", "user"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or malformed token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     sub = int(payload["sub"])
 
     if token_type == "user":

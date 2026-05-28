@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/layout/Sidebar';
 import TopBar from '../components/layout/TopBar';
 import Card from '../components/ui/Card';
 import Icon from '../components/ui/Icon';
-import { getAnalytics, getHealth } from '../services/api';
+import { useCurrentPrincipal } from '../hooks/useCurrentPrincipal';
+import { getAnalytics } from '../services/api';
 
 function StatCard({ label, value, unit, delta, deltaTone, icon }) {
   return (
@@ -39,19 +39,15 @@ function StatusDot({ tone = 'success' }) {
 }
 
 export default function DashboardPage() {
-  const { admin, logout } = useAuth();
-  const navigate          = useNavigate();
+  const { role, name, initials, logout } = useCurrentPrincipal();  // M5
+  const navigate = useNavigate();
 
-  const role      = admin?.role ?? 'admin';
-  const name      = admin?.username ?? 'Admin';
-  const initials  = name.slice(0, 2).toUpperCase();
+  const [stats, setStats] = useState(null);
 
-  const [stats,  setStats]  = useState(null);
-  const [health, setHealth] = useState(null);
-
+  // H17: analytics already returns doc_count + chunk_count — no need for a
+  // separate getHealth() call. One round-trip instead of two.
   useEffect(() => {
     getAnalytics('7d').then(setStats).catch(() => {});
-    getHealth().then(setHealth).catch(() => {});
   }, []);
 
   function handleLogout() {
@@ -163,18 +159,19 @@ export default function DashboardPage() {
                 {/* System status */}
                 <Card title="System status">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* H17: use stats (from analytics) instead of a separate health call */}
                     {[
                       [
                         'FAISS index',
-                        health ? 'success' : 'warn',
-                        health ? `In sync · ${health.chunks} vectors` : 'Loading…',
+                        stats ? 'success' : 'warn',
+                        stats ? `In sync · ${stats.chunk_count} vectors` : 'Loading…',
                       ],
                       ['LLM (gpt-4o-mini)',    'success', 'Reachable'],
                       ['Embeddings (ada-002)', 'success', 'Reachable'],
                       [
                         'Knowledge base',
-                        health ? 'success' : 'warn',
-                        health ? `${health.docs} PDF${health.docs !== 1 ? 's' : ''} ingested` : 'Loading…',
+                        stats ? 'success' : 'warn',
+                        stats ? `${stats.doc_count} PDF${stats.doc_count !== 1 ? 's' : ''} ingested` : 'Loading…',
                       ],
                     ].map(([k, tone, v]) => (
                       <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -189,9 +186,12 @@ export default function DashboardPage() {
                 {/* Quick actions */}
                 <Card title="Quick actions">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* C11: hide the admin-management link for non-master admins */}
                     {[
                       ['upload', 'Upload a new PDF',  'Add to knowledge base', '/documents'],
-                      ['users',  'Invite an admin',   'Master Admin only',     '/admins'],
+                      ...(role === 'master_admin'
+                        ? [['users', 'Invite an admin', 'Master Admin only', '/admins']]
+                        : []),
                       ['chart',  'Export analytics',  'Last 30 days CSV',      '/analytics'],
                     ].map(([ic, t, s, path]) => (
                       <div

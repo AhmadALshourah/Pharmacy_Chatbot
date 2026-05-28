@@ -45,11 +45,9 @@
   --pc-role-user: #1F5F4A;
   --pc-role-user-soft: #E6EFEA;
 
-  /* Radii */
-  --pc-r-sm: 6px;
+  /* Radii — only the two values actually used in the codebase are kept */
   --pc-r: 10px;
   --pc-r-lg: 14px;
-  --pc-r-xl: 20px;
 
   /* Shadow (used sparingly) */
   --pc-shadow-1: 0 1px 0 rgba(20, 20, 15, 0.04), 0 1px 2px rgba(20, 20, 15, 0.04);
@@ -543,6 +541,14 @@
 @keyframes pc-toast-in {
   from { transform: translateX(16px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+/* L10: moved from inline <style> tag in ChatPage.jsx */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────

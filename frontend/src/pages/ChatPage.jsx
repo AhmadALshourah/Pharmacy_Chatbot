@@ -22,12 +22,24 @@ function SourcePills({ sources }) {
 
 // ── Single message bubble ─────────────────────────────────────────────────────
 
+// C1: escape HTML special chars BEFORE applying any markup so LLM/PDF
+// content can never inject executable scripts via dangerouslySetInnerHTML.
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function Message({ msg, initials }) {
   const isUser      = msg.role === 'user';
   const isEmergency = msg.emergency;
   const isStreaming  = msg.streaming;
 
-  const htmlContent = (msg.content || '')
+  // Escape first, then apply safe markup (bold + line-breaks only)
+  const htmlContent = escapeHtml(msg.content || '')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br/>');
 
@@ -102,19 +114,31 @@ function Message({ msg, initials }) {
 
 export default function ChatPage({ userRole = false }) {
   const { principal } = useAuth();
-  const role      = userRole ? 'user' : (principal?.principalType === 'user' ? 'user' : (principal?.role ?? 'admin'));
-  const name      = principal?.username ?? 'User';
-  const initials  = name.slice(0, 2).toUpperCase();
+  // M1: flattened the triple-nested ternary into two readable checks
+  const isUserPrincipal = userRole || principal?.principalType === 'user';
+  const role     = isUserPrincipal ? 'user' : (principal?.role ?? 'admin');
+  const name     = principal?.username ?? 'User';
+  const initials = name.slice(0, 2).toUpperCase();
 
   const [sessions,          setSessions]          = useState([]);
+  const [sessionFilter,     setSessionFilter]      = useState('');  // H18
+  const [chatSidebarOpen,   setChatSidebarOpen]   = useState(false); // L3: mobile toggle
   const [activeSession,     setActiveSession]      = useState(null);
   const [currentSessionId,  setCurrentSessionId]   = useState(null);
   const [messages,          setMessages]           = useState([]);
   const [input,             setInput]              = useState('');
   const [streaming,         setStreaming]          = useState(false);
 
-  const threadRef   = useRef(null);
-  const abortRef    = useRef(false);
+  const threadRef      = useRef(null);
+  // H11: use a ref so handleSend always reads the latest messages without stale closure
+  const messagesRef    = useRef([]);
+  // H13: AbortController ref so we can truly cancel the underlying fetch
+  const abortCtrlRef   = useRef(null);
+  // H12: track which session the active stream belongs to
+  const streamingForId = useRef(null);
+
+  // Keep messagesRef in sync with state (H11)
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -138,11 +162,14 @@ export default function ChatPage({ userRole = false }) {
   // Select a session and load its messages
   async function handleSelectSession(session) {
     if (activeSession?.id === session.id) return;
+    abortStream();              // H13: cancel any in-progress stream before switching
+    setChatSidebarOpen(false);  // L3: auto-close mobile sidebar on selection
     setActiveSession(session);
     setCurrentSessionId(session.id);
     try {
       const msgs = await getSessionMessages(session.id);
       const fmt = msgs.map(m => ({
+        id:         `hist-${m.id}`,   // H15: stable key from DB id
         role:       m.role,
         content:    m.content,
         senderName: m.role === 'user' ? name : 'Aspira',
@@ -157,21 +184,31 @@ export default function ChatPage({ userRole = false }) {
     }
   }
 
+  // Abort any in-progress stream (H13)
+  function abortStream() {
+    abortCtrlRef.current?.abort();
+    abortCtrlRef.current = null;
+  }
+
   // New conversation
   function handleNewSession() {
+    abortStream();
     setActiveSession(null);
     setCurrentSessionId(null);
     setMessages([]);
+    setStreaming(false);
   }
 
   // Delete a session
   async function handleDeleteSession(e, sessionId) {
     e.stopPropagation();
+    // L7: guard against accidental single-click deletion of entire history
+    if (!confirm('Delete this conversation? This cannot be undone.')) return;
     try {
       await deleteSession(sessionId);
       setSessions(prev => prev.filter(s => s.id !== sessionId));
       if (activeSession?.id === sessionId) handleNewSession();
-    } catch { /* noop */ }
+    } catch { /* noop — session already removed or network error; UI is already updated */ }
   }
 
   // Send message with real-time SSE streaming
@@ -181,31 +218,41 @@ export default function ChatPage({ userRole = false }) {
 
     const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-    // Append user message
-    const userMsg = { role: 'user', content: text, senderName: name, initials, time: now };
+    // H11: read history from ref — never stale even if state hasn't re-rendered
+    const history = messagesRef.current.map(m => ({ role: m.role, content: m.content }));
+
+    // H15: stable string id on every message so React doesn't re-use DOM nodes
+    const msgId   = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+    const userMsg = { id: msgId(), role: 'user', content: text, senderName: name, initials, time: now };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setStreaming(true);
-    abortRef.current = false;
 
-    // Build history from current messages (before the new user msg)
-    const history = messages.map(m => ({ role: m.role, content: m.content }));
+    // H13: create a fresh AbortController for this stream
+    const ctrl = new AbortController();
+    abortCtrlRef.current = ctrl;
 
-    // Add a streaming placeholder for the bot response
-    const botPlaceholder = { role: 'assistant', content: '', streaming: true };
+    // H12: record which session this stream is for
+    const thisSessionId = currentSessionId;
+    streamingForId.current = thisSessionId;
+
+    const placeholderId = msgId();
+    const botPlaceholder = { id: placeholderId, role: 'assistant', content: '', streaming: true };
     setMessages(prev => [...prev, botPlaceholder]);
 
     const startMs = Date.now();
 
     try {
-      for await (const event of streamChat(text, currentSessionId, history)) {
-        if (abortRef.current) break;
+      for await (const event of streamChat(text, thisSessionId, history, ctrl.signal)) {
+        // H12: if the user switched sessions, stop writing to old message list
+        if (streamingForId.current !== thisSessionId) break;
 
         if (event.token !== undefined) {
-          // Update the streaming placeholder with accumulated content
           setMessages(prev => {
             const msgs = [...prev];
-            msgs[msgs.length - 1] = { ...botPlaceholder, content: event.token };
+            const idx = msgs.findLastIndex(m => m.id === placeholderId);
+            if (idx !== -1) msgs[idx] = { ...msgs[idx], content: event.token };
             return msgs;
           });
         }
@@ -216,7 +263,9 @@ export default function ChatPage({ userRole = false }) {
 
           setMessages(prev => {
             const msgs = [...prev];
-            msgs[msgs.length - 1] = {
+            const idx = msgs.findLastIndex(m => m.id === placeholderId);
+            if (idx !== -1) msgs[idx] = {
+              id:        placeholderId,
               role:      'assistant',
               content:   event.content ?? '',
               sources:   event.sources  ?? [],
@@ -228,7 +277,6 @@ export default function ChatPage({ userRole = false }) {
             return msgs;
           });
 
-          // Store the real session_id for subsequent messages
           if (event.session_id != null) {
             setCurrentSessionId(event.session_id);
             setActiveSession(s => s ?? { id: event.session_id, title: text.slice(0, 60) });
@@ -240,19 +288,21 @@ export default function ChatPage({ userRole = false }) {
         if (event.error) throw new Error(event.error);
       }
     } catch (err) {
+      // AbortError is expected when the user navigates away — swallow silently
+      if (err.name === 'AbortError') return;
       const errTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
       setMessages(prev => {
         const msgs = [...prev];
-        msgs[msgs.length - 1] = {
-          role:     'assistant',
-          content:  `Error: ${err.message}`,
-          streaming: false,
-          time:     errTime,
+        const idx = msgs.findLastIndex(m => m.id === placeholderId);
+        if (idx !== -1) msgs[idx] = {
+          id: placeholderId, role: 'assistant',
+          content: `Error: ${err.message}`, streaming: false, time: errTime,
         };
         return msgs;
       });
     } finally {
       setStreaming(false);
+      if (abortCtrlRef.current === ctrl) abortCtrlRef.current = null;
     }
   }
 
@@ -283,16 +333,30 @@ export default function ChatPage({ userRole = false }) {
         <main className="pc-main" style={{ background: 'var(--pc-bg)' }}>
           <div className="pc-chat-shell">
 
+            {/* L3: mobile overlay — tap to close chat sessions sidebar */}
+            {chatSidebarOpen && (
+              <div
+                onClick={() => setChatSidebarOpen(false)}
+                style={{
+                  position: 'fixed', inset: 0, zIndex: 199,
+                  background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)',
+                }}
+              />
+            )}
+
             {/* ── Session list sidebar ── */}
-            <div className="pc-chat-sidebar">
+            <div className={`pc-chat-sidebar${chatSidebarOpen ? ' pc-chat-sidebar-open' : ''}`}>
               <div className="pc-chat-sidebar-head">
                 <button className="pc-new-chat" onClick={handleNewSession}>
                   <Icon name="plus" size={14} stroke={2.2} /> New conversation
                 </button>
                 <div style={{ position: 'relative', marginTop: 10 }}>
+                  {/* H18: wired filter state */}
                   <input
                     className="pc-input"
                     placeholder="Search history…"
+                    value={sessionFilter}
+                    onChange={e => setSessionFilter(e.target.value)}
                     style={{ height: 34, fontSize: 12.5, paddingLeft: 32 }}
                   />
                   <div style={{ position: 'absolute', left: 10, top: 9, color: 'var(--pc-text-3)' }}>
@@ -302,14 +366,25 @@ export default function ChatPage({ userRole = false }) {
               </div>
 
               <div className="pc-chat-sessions">
-                {sessions.length === 0 ? (
+                {/* H18: filter sessions by title */}
+                {(() => {
+                  const visible = sessionFilter
+                    ? sessions.filter(s =>
+                        (s.title || '').toLowerCase().includes(sessionFilter.toLowerCase())
+                      )
+                    : sessions;
+                  return visible.length === 0 ? (
                   <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center' }}>
                     <div>
                       <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--pc-surface-3)', color: 'var(--pc-text-3)', margin: '0 auto 10px', display: 'grid', placeItems: 'center' }}>
                         <Icon name="chat" size={20} />
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 550, color: 'var(--pc-text-2)' }}>No conversations yet</div>
-                      <div style={{ fontSize: 12, color: 'var(--pc-text-3)', marginTop: 2 }}>Your chat history will appear here</div>
+                      <div style={{ fontSize: 13, fontWeight: 550, color: 'var(--pc-text-2)' }}>
+                        {sessionFilter ? 'No matches' : 'No conversations yet'}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--pc-text-3)', marginTop: 2 }}>
+                        {sessionFilter ? 'Try a different search term' : 'Your chat history will appear here'}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -325,7 +400,7 @@ export default function ChatPage({ userRole = false }) {
                       </span>
                     </div>
                   ))
-                )}
+                ); })()}
               </div>
             </div>
 
@@ -391,6 +466,15 @@ export default function ChatPage({ userRole = false }) {
                 <>
                   {/* Chat header */}
                   <div className="pc-chat-head">
+                    {/* L3: hamburger visible only on mobile (≤640px) */}
+                    <button
+                      className="pc-hamburger"
+                      onClick={() => setChatSidebarOpen(true)}
+                      aria-label="Open sessions"
+                      style={{ marginRight: 4 }}
+                    >
+                      <Icon name="menu" size={16} />
+                    </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--pc-primary-soft)', color: 'var(--pc-primary)', display: 'grid', placeItems: 'center' }}>
                         <Icon name="chat" size={16} />
@@ -407,7 +491,9 @@ export default function ChatPage({ userRole = false }) {
                       <button
                         className="pc-btn pc-btn-ghost pc-btn-icon"
                         title="Delete conversation"
-                        onClick={e => currentSessionId && handleDeleteSession(e, currentSessionId)}
+                        onClick={e => {
+                          if (currentSessionId) handleDeleteSession(e, currentSessionId);
+                        }}
                       >
                         <Icon name="trash" size={15} />
                       </button>
@@ -417,8 +503,9 @@ export default function ChatPage({ userRole = false }) {
                   {/* Thread */}
                   <div className="pc-chat-thread" ref={threadRef}>
                     <div className="pc-chat-inner">
-                      {messages.map((msg, i) => (
-                        <Message key={i} msg={msg} initials={initials} />
+                      {/* H15: key on stable msg.id, not array index */}
+                      {messages.map(msg => (
+                        <Message key={msg.id} msg={msg} initials={initials} />
                       ))}
                     </div>
                   </div>
@@ -455,9 +542,6 @@ export default function ChatPage({ userRole = false }) {
         </main>
       </div>
 
-      <style>{`
-        @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
-      `}</style>
     </div>
   );
 }

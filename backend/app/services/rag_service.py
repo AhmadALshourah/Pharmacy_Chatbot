@@ -144,16 +144,18 @@ class RAGService:
         message: str,
         history: list[dict],
         admin_id: int | None = None,
-    ) -> Generator[str, None, None]:
+        rate_limit_key: str = "global",
+    ) -> Generator[str | dict, None, None]:
         """Generate a streaming response for the given message.
 
         Yields cumulative response text as tokens arrive from the LLM.
         The final yield includes source citations appended.
 
         Args:
-            message:  The user's question.
-            history:  Prior messages [{"role": "user"|"assistant", "content": "..."}].
-            admin_id: ID of the authenticated admin (for analytics attribution).
+            message:         The user's question.
+            history:         Prior messages [{"role": "user"|"assistant", ...}].
+            admin_id:        Admin ID for analytics attribution (None for users).
+            rate_limit_key:  Per-principal key for the rate limiter (e.g. "admin_1").
 
         Yields:
             Cumulative response text (each yield replaces the previous).
@@ -164,8 +166,8 @@ class RAGService:
             yield query
             return
 
-        # Rate limit
-        if not self.rate_limiter.check():
+        # C4: per-principal rate limit so one caller cannot starve others
+        if not self.rate_limiter.check(key=rate_limit_key):
             yield "Too many requests. Please wait a moment and try again."
             return
 
@@ -228,15 +230,16 @@ class RAGService:
                 full_response += chunk.content
                 yield full_response
 
-            # Append sources
+            # L12: yield a structured sentinel as the last item so the router
+            # never needs to parse "*Sources:*" back out of plain text.
             source_list = ", ".join(sorted(cited_sources))
             final = f"{full_response}\n\n*Sources: {source_list}*"
-            yield final
+            yield {"type": "done", "content": final, "sources": sorted(cited_sources)}
 
             elapsed_ms = int((time.time() - start) * 1000)
             log.info(f"Response: {elapsed_ms}ms | sources={sorted(cited_sources)}")
 
-            # Cache + analytics
+            # Cache stores the formatted string (with citations appended)
             if not history:
                 self.cache.set(cache_key, final)
             log_query(len(query), elapsed_ms, cited_sources, is_emergency=False, is_cached=False, admin_id=admin_id)

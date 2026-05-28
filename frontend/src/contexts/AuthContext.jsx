@@ -22,16 +22,16 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Admin login
-  const login = useCallback(async (username, password) => {
-    const data = await apiLogin(username, password);
+  // Admin login — remember=true → localStorage (persists); false → sessionStorage (tab-only)
+  const login = useCallback(async (username, password, remember = true) => {
+    const data = await apiLogin(username, password, remember);
     setPrincipal(data);
     return data;
   }, []);
 
   // User login
-  const loginUser = useCallback(async (username, password) => {
-    const data = await apiUserLogin(username, password);
+  const loginUser = useCallback(async (username, password, remember = true) => {
+    const data = await apiUserLogin(username, password, remember);
     setPrincipal(data);
     return data;
   }, []);

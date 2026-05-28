@@ -1,4 +1,5 @@
-FROM node:20-alpine AS build
+# L5: pin exact Node version for reproducible builds
+FROM node:20.19.1-alpine3.21 AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci

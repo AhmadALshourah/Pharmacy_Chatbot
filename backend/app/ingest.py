@@ -48,7 +48,17 @@ def extract_text(pdf_path):
     return "\n".join(pages_text), len(reader.pages)
 
 
-def process_file(filepath, embeddings, uploaded_by: int | None = None):
+def process_file(filepath, embeddings, uploaded_by: int | None = None, safe_name: str | None = None):
+    """Ingest a single PDF.
+
+    Args:
+        filepath:    Path to the (possibly temporary) PDF file on disk.
+        embeddings:  OpenAI embeddings instance.
+        uploaded_by: Admin ID for attribution (None = CLI).
+        safe_name:   Override the stored filename (used by the upload router which
+                     has already sanitized the original filename via Path(...).name).
+                     Defaults to the basename of *filepath*.
+    """
     filepath = Path(filepath)
 
     if not filepath.exists():
@@ -59,13 +69,14 @@ def process_file(filepath, embeddings, uploaded_by: int | None = None):
         print(f"  [!] Not a PDF: {filepath}")
         return False
 
+    stored_name = safe_name or filepath.name
     file_hash = compute_file_hash(filepath)
 
     if document_exists_by_hash(file_hash):
         print(f"  [=] Already ingested: {filepath.name}")
         return False
 
-    print(f"  [>] Processing: {filepath.name}")
+    print(f"  [>] Processing: {stored_name}")
 
     try:
         raw_text, page_count = extract_text(filepath)
@@ -90,7 +101,7 @@ def process_file(filepath, embeddings, uploaded_by: int | None = None):
     chunks_data = [(i, text, vec) for i, (text, vec) in enumerate(zip(chunks, vectors))]
 
     try:
-        ingest_document(filepath.name, file_hash, filepath.stat().st_size, page_count, chunks_data, uploaded_by)
+        ingest_document(stored_name, file_hash, filepath.stat().st_size, page_count, chunks_data, uploaded_by)
     except Exception as e:
         print(f"  [!] Database error ({type(e).__name__}): {e}")
         return False

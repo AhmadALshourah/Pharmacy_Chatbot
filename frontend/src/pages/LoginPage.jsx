@@ -7,11 +7,12 @@ export default function LoginPage() {
   const { login, loginUser } = useAuth();
   const navigate             = useNavigate();
 
-  const [role,    setRole]    = useState('admin');
-  const [form,    setForm]    = useState({ username: '', password: '' });
-  const [showPw,  setShowPw]  = useState(false);
-  const [error,   setError]   = useState('');
-  const [loading, setLoading] = useState(false);
+  const [role,     setRole]     = useState('admin');
+  const [form,     setForm]     = useState({ username: '', password: '' });
+  const [showPw,   setShowPw]   = useState(false);
+  const [remember, setRemember] = useState(true);   // M11: keep-me-signed-in state
+  const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(false);
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -27,10 +28,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (role === 'user') {
-        await loginUser(form.username.trim(), form.password);
+        await loginUser(form.username.trim(), form.password, remember);
         navigate('/user/chat', { replace: true });
       } else {
-        await login(form.username.trim(), form.password);
+        await login(form.username.trim(), form.password, remember);
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
@@ -156,8 +157,14 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--pc-text-2)', marginTop: 2 }}>
-                <input type="checkbox" defaultChecked style={{ accentColor: 'var(--pc-primary)' }} />
+              {/* M11: now wired — unchecked → sessionStorage (clears on tab close) */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--pc-text-2)', marginTop: 2, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={e => setRemember(e.target.checked)}
+                  style={{ accentColor: 'var(--pc-primary)', cursor: 'pointer' }}
+                />
                 Keep me signed in for 8 hours
               </label>
 

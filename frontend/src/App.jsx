@@ -4,7 +4,8 @@ import { ThemeProvider }  from './contexts/ThemeContext';
 import { ToastProvider }  from './contexts/ToastContext';
 import { LayoutProvider } from './contexts/LayoutContext';
 import ToastContainer     from './components/ui/Toast';
-import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary      from './components/ErrorBoundary';
+import ProtectedRoute     from './components/ProtectedRoute';
 import LoginPage      from './pages/LoginPage';
 import DashboardPage  from './pages/DashboardPage';
 import ChatPage       from './pages/ChatPage';
@@ -15,6 +16,7 @@ import SettingsPage   from './pages/SettingsPage';
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <ThemeProvider>
       <ToastProvider>
         <LayoutProvider>
@@ -43,5 +45,6 @@ export default function App() {
         </LayoutProvider>
       </ToastProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }

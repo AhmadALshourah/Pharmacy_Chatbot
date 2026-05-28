@@ -69,31 +69,38 @@ async def chat(
 
     # Analytics: only attribute to admin_id when the caller is an admin
     admin_id = principal_id if is_admin else None
-    history  = [msg.model_dump() for msg in body.history]
+    # C4: per-principal key so each user has their own rate-limit window
+    rate_limit_key = f"{'admin' if is_admin else 'user'}_{principal_id}"
+    history = [msg.model_dump() for msg in body.history]
 
     def event_stream():
-        last_token = ""
+        last_content = ""
+        final_sources: list[str] = []
         try:
-            for token in rag_service.predict(body.message, history, admin_id=admin_id):
-                last_token = token
-                event = json.dumps({"token": token}, ensure_ascii=False)
+            for item in rag_service.predict(
+                body.message, history,
+                admin_id=admin_id,
+                rate_limit_key=rate_limit_key,
+            ):
+                # L12: last yield is a structured dict — everything else is a text token
+                if isinstance(item, dict) and item.get("type") == "done":
+                    last_content   = item["content"]
+                    final_sources  = item["sources"]
+                    break          # no more items after the done sentinel
+
+                # Regular streaming token
+                last_content = item
+                event = json.dumps({"token": item}, ensure_ascii=False)
                 yield f"data: {event}\n\n"
 
-            # Persist the full assistant response
-            _add_message(session_id, "assistant", last_token)
-
-            sources: list[str] = []
-            if "*Sources:" in last_token:
-                parts = last_token.rsplit("*Sources:", 1)
-                if len(parts) == 2:
-                    source_text = parts[1].strip().rstrip("*")
-                    sources = [s.strip() for s in source_text.split(",") if s.strip()]
+            # Persist the full assistant response (with citation line appended)
+            _add_message(session_id, "assistant", last_content)
 
             done_event = json.dumps(
                 {
                     "done": True,
-                    "content": last_token,
-                    "sources": sources,
+                    "content": last_content,
+                    "sources": final_sources,
                     "session_id": session_id,
                 },
                 ensure_ascii=False,

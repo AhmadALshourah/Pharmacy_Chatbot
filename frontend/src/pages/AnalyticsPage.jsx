@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/layout/Sidebar';
 import TopBar from '../components/layout/TopBar';
 import Card from '../components/ui/Card';
 import Icon from '../components/ui/Icon';
+import { useCurrentPrincipal } from '../hooks/useCurrentPrincipal';
 import { getAnalytics } from '../services/api';
 
 function StatCard({ label, value, unit, delta, deltaTone, icon }) {
@@ -27,41 +27,36 @@ function StatCard({ label, value, unit, delta, deltaTone, icon }) {
 }
 
 export default function AnalyticsPage() {
-  const { admin } = useAuth();
-  const role      = admin?.role ?? 'admin';
-  const name      = admin?.username ?? 'Admin';
-  const initials  = name.slice(0, 2).toUpperCase();
+  const { role, name, initials } = useCurrentPrincipal();  // M5
 
   const [data,   setData]   = useState(null);
   const [period, setPeriod] = useState('30d');
 
-  async function loadAnalytics() {
-    try {
-      const res = await getAnalytics(period);
-      setData(res);
-    } catch { /* noop — page shows fallback values on network error */ }
-  }
+  // M4: inline the fetch so the dependency array is accurate with no lint suppression needed
+  useEffect(() => {
+    let cancelled = false;
+    getAnalytics(period)
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(() => { /* noop — page shows placeholder values on network error */ });
+    return () => { cancelled = true; };
+  }, [period]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadAnalytics(); }, [period]);
+  // While data is loading (null) show placeholder chart; once loaded use real values
+  // (including 0 — don't fall back to fake numbers when the DB is genuinely empty)
+  const isLoaded = data !== null;
+  const bars    = data?.daily_counts ?? [22,28,24,36,30,42,38,51,46,58,53,68,62,72,70,84,78,92,86,96,90,102,98,110,106,118,112,124];
+  const maxBar  = Math.max(...bars, 1);
 
-  const bars = data?.daily_counts ?? [22,28,24,36,30,42,38,51,46,58,53,68,62,72,70,84,78,92,86,96,90,102,98,110,106,118,112,124];
-  const maxBar = Math.max(...bars, 1);
+  const totalQueries    = isLoaded ? (data.total     ?? 0)    : '—';
+  const cachedResponses = isLoaded ? (data.cached    ?? 0)    : '—';
+  const emergencyCount  = isLoaded ? (data.emergency ?? 0)    : '—';
+  const avgLatency      = data?.avg_ms ? (data.avg_ms / 1000).toFixed(2) : (isLoaded ? '0.00' : '—');
 
-  // API returns: { total, cached, emergency, avg_ms, doc_count, chunk_count }
-  const totalQueries    = data?.total     ?? 3847;
-  const cachedResponses = data?.cached    ?? 892;
-  const emergencyCount  = data?.emergency ?? 7;
-  const avgLatency      = data?.avg_ms    ? (data.avg_ms / 1000).toFixed(2) : '1.34';
+  // C9/M12: show empty list when loaded with no data rather than fake rows
+  const docStats = isLoaded ? (data.doc_stats ?? []) : [];
 
-  const docStats = data?.doc_stats ?? [
-    { name: 'Medic.pdf',                citations: 2104, pct: 62 },
-    { name: 'Aspirin.pdf',              citations: 1187, pct: 35 },
-    { name: 'Insulin_Storage_Guide.pdf', citations: 124,  pct: 3  },
-  ];
-
-  const langEn  = data?.lang_en_pct  ?? 62;
-  const langAr  = data?.lang_ar_pct  ?? 38;
+  const langEn = isLoaded ? (data.lang_en_pct ?? 0) : 62;
+  const langAr = isLoaded ? (data.lang_ar_pct ?? 0) : 38;
 
   return (
     <div className="pc-app" style={{ height: '100vh' }}>
@@ -79,7 +74,7 @@ export default function AnalyticsPage() {
                     <button key={p} className={period === p ? 'active' : ''} onClick={() => setPeriod(p)}>{p}</button>
                   ))}
                 </div>
-                <button className="pc-btn pc-btn-secondary"><Icon name="download" size={14} /> CSV</button>
+                {/* CSV export: not yet implemented — button removed to avoid misleading users */}
               </>
             }
           />
@@ -170,8 +165,9 @@ export default function AnalyticsPage() {
                       <circle cx="18" cy="18" r="15.91" fill="none" stroke="var(--pc-surface-3)" strokeWidth="4"/>
                       <circle cx="18" cy="18" r="15.91" fill="none" stroke="var(--pc-primary)" strokeWidth="4"
                         strokeDasharray={`${langEn} 100`} strokeDashoffset="25" transform="rotate(-90 18 18)" strokeLinecap="round"/>
+                      {/* C9: Arabic arc must start exactly where English ended → offset = 25 - langEn */}
                       <circle cx="18" cy="18" r="15.91" fill="none" stroke="var(--pc-primary)" strokeOpacity="0.5" strokeWidth="4"
-                        strokeDasharray={`${langAr} 100`} strokeDashoffset={`-${langEn - 0}`} transform="rotate(-90 18 18)" strokeLinecap="round"/>
+                        strokeDasharray={`${langAr} 100`} strokeDashoffset={25 - langEn} transform="rotate(-90 18 18)" strokeLinecap="round"/>
                     </svg>
                     <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
                       <div>

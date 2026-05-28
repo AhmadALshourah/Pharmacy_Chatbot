@@ -1,17 +1,34 @@
 const BASE = '/api';
 
 // ── Token storage ─────────────────────────────────────────────────────────────
+// M11: when "Keep me signed in" is unchecked, tokens go into sessionStorage
+// so they are cleared automatically when the browser tab/window is closed.
+// localStorage is used when the checkbox is checked (default — 8-hour expiry).
+const _KEY      = 'pharmacy_token';
+const _TYPE_KEY = 'pharmacy_token_type';
+
+function _store() {
+  // Prefer localStorage; fall back to sessionStorage if that's where the token lives.
+  return localStorage.getItem(_KEY) !== null ? localStorage : sessionStorage;
+}
 
 export const token = {
-  get:     ()           => localStorage.getItem('pharmacy_token'),
-  getType: ()           => localStorage.getItem('pharmacy_token_type') || 'admin',
-  set:     (t, type = 'admin') => {
-    localStorage.setItem('pharmacy_token', t);
-    localStorage.setItem('pharmacy_token_type', type);
+  get:     ()                         => _store().getItem(_KEY),
+  getType: ()                         => _store().getItem(_TYPE_KEY) || 'admin',
+  set:     (t, type = 'admin', remember = true) => {
+    const store = remember ? localStorage : sessionStorage;
+    // Clear the other store to avoid stale tokens in both places
+    const other = remember ? sessionStorage : localStorage;
+    other.removeItem(_KEY);
+    other.removeItem(_TYPE_KEY);
+    store.setItem(_KEY, t);
+    store.setItem(_TYPE_KEY, type);
   },
   clear: () => {
-    localStorage.removeItem('pharmacy_token');
-    localStorage.removeItem('pharmacy_token_type');
+    localStorage.removeItem(_KEY);
+    localStorage.removeItem(_TYPE_KEY);
+    sessionStorage.removeItem(_KEY);
+    sessionStorage.removeItem(_TYPE_KEY);
   },
 };
 
@@ -35,12 +52,12 @@ async function request(path, options = {}) {
 
 // ── Admin auth ────────────────────────────────────────────────────────────────
 
-export async function login(username, password) {
+export async function login(username, password, remember = true) {
   const data = await request('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ username, password }),
   });
-  token.set(data.access_token, 'admin');
+  token.set(data.access_token, 'admin', remember);
   return { ...data.admin, principalType: 'admin' };
 }
 
@@ -58,12 +75,12 @@ export async function changePassword(current_password, new_password) {
 
 // ── User auth ─────────────────────────────────────────────────────────────────
 
-export async function userLogin(username, password) {
+export async function userLogin(username, password, remember = true) {
   const data = await request('/user/login', {
     method: 'POST',
     body: JSON.stringify({ username, password }),
   });
-  token.set(data.access_token, 'user');
+  token.set(data.access_token, 'user', remember);
   return { ...data.user, principalType: 'user' };
 }
 
@@ -130,7 +147,11 @@ export async function getSessionMessages(sessionId) {
  * Yields { token: string } while streaming, then { done: true, content, sources, session_id }.
  * On error yields { error: string }.
  */
-export async function* streamChat(message, sessionId, history = []) {
+/**
+ * H13: accepts an AbortSignal so callers can genuinely cancel the underlying
+ * fetch (not just break the JS loop — that leaves the server streaming).
+ */
+export async function* streamChat(message, sessionId, history = [], signal) {
   const body = {
     message,
     history: history.map(m => ({ role: m.role, content: m.content })),
@@ -142,6 +163,7 @@ export async function* streamChat(message, sessionId, history = []) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
+    signal,    // H13: wire the AbortController signal
   });
 
   if (!res.ok) {

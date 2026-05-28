@@ -33,10 +33,11 @@ def _add_column_if_missing(conn, table: str, column: str, definition: str) -> No
 
 def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    conn.executescript("""
+    # M13: use _connect() so journal_mode=WAL and foreign_keys=ON are set on
+    # the very first connection — previously a raw sqlite3.connect() was used
+    # which skipped the WAL pragma on DB initialisation.
+    with _connect() as conn:
+        conn.executescript("""
         -- ── Core tables ──────────────────────────────────────────────────────────
 
         CREATE TABLE IF NOT EXISTS documents (
@@ -131,24 +132,26 @@ def init_db():
 
         -- ── Indexes ───────────────────────────────────────────────────────────────
 
-        CREATE INDEX IF NOT EXISTS idx_chunks_doc       ON chunks(document_id);
-        CREATE INDEX IF NOT EXISTS idx_analytics_date   ON analytics(created_at);
-        CREATE INDEX IF NOT EXISTS idx_admins_username  ON admins(username);
-        CREATE INDEX IF NOT EXISTS idx_sessions_admin   ON chat_sessions(admin_id);
-        CREATE INDEX IF NOT EXISTS idx_messages_session ON chat_messages(session_id);
-        CREATE INDEX IF NOT EXISTS idx_users_username   ON users(username);
-        CREATE INDEX IF NOT EXISTS idx_user_sessions    ON user_sessions(user_id);
-        CREATE INDEX IF NOT EXISTS idx_user_messages    ON user_messages(session_id);
+        CREATE INDEX IF NOT EXISTS idx_chunks_doc         ON chunks(document_id);
+        CREATE INDEX IF NOT EXISTS idx_analytics_date     ON analytics(created_at);
+        CREATE INDEX IF NOT EXISTS idx_admins_username    ON admins(username);
+        CREATE INDEX IF NOT EXISTS idx_sessions_admin     ON chat_sessions(admin_id);
+        CREATE INDEX IF NOT EXISTS idx_messages_session   ON chat_messages(session_id);
+        CREATE INDEX IF NOT EXISTS idx_users_username     ON users(username);
+        CREATE INDEX IF NOT EXISTS idx_user_sessions      ON user_sessions(user_id);
+        CREATE INDEX IF NOT EXISTS idx_user_messages      ON user_messages(session_id);
+
+        -- H10: indexes on hot query paths that were missing
+        CREATE INDEX IF NOT EXISTS idx_documents_hash     ON documents(file_hash);
+        CREATE INDEX IF NOT EXISTS idx_documents_created  ON documents(created_at);
     """)
 
-    # ── Column migrations (safe on existing databases) ────────────────────────
-    _add_column_if_missing(conn, "documents", "uploaded_by",
-                           "INTEGER REFERENCES admins(id) ON DELETE SET NULL")
-    _add_column_if_missing(conn, "analytics", "admin_id",
-                           "INTEGER REFERENCES admins(id) ON DELETE SET NULL")
-
-    conn.commit()
-    conn.close()
+    # ── Column migrations in a separate connection (executescript auto-commits) ─
+    with _connect() as conn:
+        _add_column_if_missing(conn, "documents", "uploaded_by",
+                               "INTEGER REFERENCES admins(id) ON DELETE SET NULL")
+        _add_column_if_missing(conn, "analytics", "admin_id",
+                               "INTEGER REFERENCES admins(id) ON DELETE SET NULL")
 
 
 # ── Admin functions ───────────────────────────────────────────────────────────
@@ -217,9 +220,13 @@ def update_admin_password(admin_id: int, new_hash: str) -> None:
         db.execute("UPDATE admins SET password_hash = ? WHERE id = ?", (new_hash, admin_id))
 
 
-def set_admin_active(admin_id: int, is_active: bool) -> None:
+def set_admin_active(admin_id: int, is_active: bool) -> bool:
+    """Toggle admin active status. Returns True if the row was found and updated."""
     with _connect() as db:
-        db.execute("UPDATE admins SET is_active = ? WHERE id = ?", (int(is_active), admin_id))
+        cursor = db.execute(
+            "UPDATE admins SET is_active = ? WHERE id = ?", (int(is_active), admin_id)
+        )
+        return cursor.rowcount > 0   # M9: callers can detect 404 instead of silent no-op
 
 
 def delete_admin(admin_id: int) -> None:
@@ -279,11 +286,13 @@ def add_chat_message(session_id: int, role: str, content: str) -> int:
 
 
 def get_chat_messages(session_id: int) -> list[dict]:
-    """Return all messages in a session ordered by creation time."""
+    """Return all messages in a session in insertion order."""
     with _connect() as db:
         rows = db.execute(
+            # H9: ORDER BY id (monotonic PK) instead of TEXT created_at
+            # which can mis-sort messages inserted within the same second
             "SELECT id, session_id, role, content, created_at "
-            "FROM chat_messages WHERE session_id = ? ORDER BY created_at",
+            "FROM chat_messages WHERE session_id = ? ORDER BY id",
             (session_id,),
         ).fetchall()
         return [{"id": r[0], "session_id": r[1], "role": r[2],
@@ -369,6 +378,22 @@ def get_all_documents() -> list:
         """).fetchall()
 
 
+def get_all_documents_with_chunks() -> list:
+    """Return documents with their chunk counts.
+
+    Row layout: (id, filename, file_hash, file_size, page_count, created_at, chunk_count)
+    """
+    with _connect() as db:
+        return db.execute("""
+            SELECT d.id, d.filename, d.file_hash, d.file_size, d.page_count,
+                   d.created_at, COUNT(c.id) AS chunk_count
+            FROM documents d
+            LEFT JOIN chunks c ON c.document_id = d.id
+            GROUP BY d.id
+            ORDER BY d.created_at
+        """).fetchall()
+
+
 def delete_document(doc_id: int) -> None:
     with _connect() as db:
         db.execute("DELETE FROM chunks WHERE document_id = ?", (doc_id,))
@@ -427,33 +452,38 @@ def get_analytics_summary() -> dict:
 
 def get_analytics_rich(days: int = 30) -> dict:
     """Return rich analytics data for the last `days` days."""
-    with _connect() as db:
-        cutoff = f"datetime('now', '-{days} days')"
+    # H5: use a parameterized modifier string instead of f-string interpolation
+    cutoff_mod = f"-{days} days"   # e.g. "-30 days" — safe: days is always an int
 
+    with _connect() as db:
         # Totals for the period
         total = db.execute(
-            f"SELECT COUNT(*) FROM analytics WHERE created_at >= {cutoff}"
+            "SELECT COUNT(*) FROM analytics WHERE created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchone()[0]
         cached = db.execute(
-            f"SELECT COUNT(*) FROM analytics WHERE is_cached=1 AND created_at >= {cutoff}"
+            "SELECT COUNT(*) FROM analytics WHERE is_cached=1 AND created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchone()[0]
         emergency = db.execute(
-            f"SELECT COUNT(*) FROM analytics WHERE is_emergency=1 AND created_at >= {cutoff}"
+            "SELECT COUNT(*) FROM analytics WHERE is_emergency=1 AND created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchone()[0]
         avg_row = db.execute(
-            f"SELECT AVG(response_ms) FROM analytics "
-            f"WHERE response_ms IS NOT NULL AND is_cached=0 AND created_at >= {cutoff}"
+            "SELECT AVG(response_ms) FROM analytics "
+            "WHERE response_ms IS NOT NULL AND is_cached=0 AND created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchone()
         avg_ms = round(avg_row[0]) if avg_row[0] else None
 
         # Daily counts: one entry per day for the last `days` days
         daily_rows = db.execute(
-            f"SELECT date(created_at) as d, COUNT(*) as n "
-            f"FROM analytics "
-            f"WHERE created_at >= {cutoff} "
-            f"GROUP BY d ORDER BY d ASC"
+            "SELECT date(created_at) as d, COUNT(*) as n "
+            "FROM analytics "
+            "WHERE created_at >= datetime('now', ?) "
+            "GROUP BY d ORDER BY d ASC",
+            (cutoff_mod,),
         ).fetchall()
-        # Build a full array with 0s for missing days
         day_map = {row[0]: row[1] for row in daily_rows}
         today = date.today()
         daily_counts = [
@@ -463,8 +493,9 @@ def get_analytics_rich(days: int = 30) -> dict:
 
         # Per-document citation stats from source_files field
         source_rows = db.execute(
-            f"SELECT source_files FROM analytics "
-            f"WHERE source_files != '' AND created_at >= {cutoff}"
+            "SELECT source_files FROM analytics "
+            "WHERE source_files != '' AND created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchall()
         doc_cite: dict[str, int] = {}
         for (src_str,) in source_rows:
@@ -478,16 +509,18 @@ def get_analytics_rich(days: int = 30) -> dict:
             for k, v in sorted(doc_cite.items(), key=lambda x: -x[1])
         ]
 
-        # Language split: detect Arabic by presence of Arabic Unicode block
+        # Language split: detect Arabic by Unicode block
         all_queries = db.execute(
-            f"SELECT content FROM chat_messages cm "
-            f"JOIN chat_sessions cs ON cm.session_id = cs.id "
-            f"WHERE cm.role='user' AND cm.created_at >= {cutoff}"
+            "SELECT content FROM chat_messages cm "
+            "JOIN chat_sessions cs ON cm.session_id = cs.id "
+            "WHERE cm.role='user' AND cm.created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchall()
         user_rows_count = db.execute(
-            f"SELECT content FROM user_messages um "
-            f"JOIN user_sessions us ON um.session_id = us.id "
-            f"WHERE um.role='user' AND um.created_at >= {cutoff}"
+            "SELECT content FROM user_messages um "
+            "JOIN user_sessions us ON um.session_id = us.id "
+            "WHERE um.role='user' AND um.created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchall()
         all_texts = [r[0] for r in all_queries] + [r[0] for r in user_rows_count]
         ar_count = sum(
@@ -499,8 +532,9 @@ def get_analytics_rich(days: int = 30) -> dict:
 
         # Average sources per reply
         avg_sources_row = db.execute(
-            f"SELECT AVG(length(source_files) - length(replace(source_files, ',', '')) + 1) "
-            f"FROM analytics WHERE source_files != '' AND created_at >= {cutoff}"
+            "SELECT AVG(length(source_files) - length(replace(source_files, ',', '')) + 1) "
+            "FROM analytics WHERE source_files != '' AND created_at >= datetime('now', ?)",
+            (cutoff_mod,),
         ).fetchone()
         avg_sources = round(avg_sources_row[0], 1) if avg_sources_row[0] else 0.0
 
@@ -625,8 +659,9 @@ def add_user_message(session_id: int, role: str, content: str) -> int:
 def get_user_messages(session_id: int) -> list[dict]:
     with _connect() as db:
         rows = db.execute(
+            # H9: ORDER BY id, same reasoning as get_chat_messages
             "SELECT id, session_id, role, content, created_at "
-            "FROM user_messages WHERE session_id = ? ORDER BY created_at",
+            "FROM user_messages WHERE session_id = ? ORDER BY id",
             (session_id,),
         ).fetchall()
         return [{"id": r[0], "session_id": r[1], "role": r[2],

@@ -6,9 +6,21 @@ ROOT_DIR = Path(__file__).parent.parent
 DATA_DIR = ROOT_DIR.parent / "data"
 
 # ── Authentication ────────────────────────────────────────────────────────────
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-this-secret-in-production-please")
-JWT_ALGORITHM  = "HS256"
+_JWT_DEFAULT = "change-this-secret-in-production-please"
+JWT_SECRET_KEY     = os.getenv("JWT_SECRET_KEY", _JWT_DEFAULT)
+JWT_SECRET_IS_WEAK = JWT_SECRET_KEY == _JWT_DEFAULT
+JWT_ALGORITHM      = "HS256"
 JWT_EXPIRE_MINUTES = 60 * 8   # 8 hours
+
+# ── CORS ──────────────────────────────────────────────────────────────────────
+# Comma-separated list of allowed origins. Override via CORS_ORIGINS env var.
+_DEFAULT_CORS = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000"
+CORS_ORIGINS: list[str] = [
+    o.strip() for o in os.getenv("CORS_ORIGINS", _DEFAULT_CORS).split(",") if o.strip()
+]
+
+# ── Upload limits ─────────────────────────────────────────────────────────────
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024   # 20 MB
 
 # ── FAISS cache (#8) ──────────────────────────────────────────────────────────
 FAISS_INDEX_PATH = DATA_DIR / "pharmacy.faiss"

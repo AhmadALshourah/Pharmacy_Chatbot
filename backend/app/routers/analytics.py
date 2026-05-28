@@ -11,7 +11,7 @@ _PERIOD_DAYS = {"7d": 7, "30d": 30, "90d": 90}
 
 
 @router.get("/analytics", response_model=AnalyticsSummary)
-async def analytics(period: str = Query("30d", pattern="^(7d|30d|90d)$")):
+def analytics(period: str = Query("30d", pattern="^(7d|30d|90d)$")):  # H8: sync
     """Return aggregated query analytics for the requested period."""
     days = _PERIOD_DAYS.get(period, 30)
     summary = get_analytics_rich(days)

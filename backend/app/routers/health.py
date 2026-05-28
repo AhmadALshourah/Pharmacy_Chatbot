@@ -8,7 +8,7 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-def health_check():
+def health_check():  # already sync — no change needed
     """Return service status and document counts."""
     docs, chunks = get_stats()
     return {

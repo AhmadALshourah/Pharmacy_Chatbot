@@ -10,7 +10,9 @@ export default function Card({ title, sub, action, children, padded = true, styl
           {action}
         </div>
       )}
-      <div className={padded ? 'pc-card-body' : ''} style={!padded ? { padding: 0 } : undefined}>
+      {/* L9: when padded=false no class is applied so no padding exists — the
+          redundant inline style={{padding:0}} was removed */}
+      <div className={padded ? 'pc-card-body' : ''}>
         {children}
       </div>
     </div>

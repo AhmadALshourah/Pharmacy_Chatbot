@@ -16,10 +16,11 @@ frontend/dist/
 .gitignore
 .idea/
 
-# Docs
+# L4: *.md is excluded intentionally — documentation is not needed inside the
+# container images and it reduces build-context transfer size.
 *.md
 ideas.md
 
-# Logs (mounted as volumes)
+# Logs (mounted as volumes at runtime)
 logs/
 *.log

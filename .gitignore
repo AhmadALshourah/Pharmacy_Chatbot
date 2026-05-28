@@ -38,3 +38,7 @@ htmlcov/
 # ── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# Design / archive artefacts
+Medical_ChatBot_extracted/
+Medical_ChatBot.zip

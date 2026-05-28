@@ -19,14 +19,14 @@ log = logging.getLogger("pharmacy")
 router = APIRouter(prefix="/user/sessions", tags=["user-sessions"])
 
 
-@router.get("", response_model=list[UserSessionResponse])
-async def list_user_sessions(user: dict = Depends(get_current_user)):
+# H8: sync def — FastAPI runs these in a threadpool automatically.
+
+def list_user_sessions(user: dict = Depends(get_current_user)):
     """Return all chat sessions for the current user, newest first."""
     return get_user_sessions(user["id"])
 
 
-@router.get("/{session_id}/messages", response_model=list[ChatMessageRecord])
-async def get_user_session_messages(
+def get_user_session_messages(
     session_id: int,
     user: dict = Depends(get_current_user),
 ):
@@ -37,8 +37,7 @@ async def get_user_session_messages(
     return get_user_messages(session_id)
 
 
-@router.delete("/{session_id}", status_code=204)
-async def remove_user_session(
+def remove_user_session(
     session_id: int,
     user: dict = Depends(get_current_user),
 ):
@@ -48,3 +47,8 @@ async def remove_user_session(
         raise HTTPException(status_code=404, detail="Session not found.")
     delete_user_session(session_id)
     log.info(f"User {user['id']} deleted session {session_id}")
+
+
+router.get("", response_model=list[UserSessionResponse])(list_user_sessions)
+router.get("/{session_id}/messages", response_model=list[ChatMessageRecord])(get_user_session_messages)
+router.delete("/{session_id}", status_code=204)(remove_user_session)

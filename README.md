@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai&logoColor=white)](https://openai.com)
 [![FAISS](https://img.shields.io/badge/FAISS-1.14-red)](https://github.com/facebookresearch/faiss)
-[![Tests](https://img.shields.io/badge/Tests-62%20passing-brightgreen)](backend/tests)
+[![Tests](https://img.shields.io/badge/Tests-96%20passing-brightgreen)](backend/tests)
 [![CI](https://github.com/AhmadALshourah/Pharmacy_Chatbot/actions/workflows/ci.yml/badge.svg)](https://github.com/AhmadALshourah/Pharmacy_Chatbot/actions)
 
 A production-quality **RAG-powered pharmacy assistant** built as a full-stack web application. Admins upload PDF drug references; the chatbot answers medication questions in real time by retrieving the most relevant chunks and streaming the response token-by-token — citing every source it uses.
@@ -212,28 +212,39 @@ Pharmacy_Chatbot/
 │   │   │                     #   user_sessions, analytics, health
 │   │   ├── schemas/          # Pydantic request / response models
 │   │   └── services/
-│   │       ├── rag_service.py    # FAISS index + LLM streaming
+│   │       ├── rag_service.py    # FAISS index + LLM streaming (structured yields)
 │   │       ├── auth_service.py   # JWT + bcrypt
 │   │       ├── cache_service.py  # LRU response cache
-│   │       └── rate_limiter.py   # Sliding-window rate limiter
-│   ├── tests/                # 62 pytest tests
+│   │       └── rate_limiter.py   # Per-principal sliding-window rate limiter
+│   ├── tests/
+│   │   ├── conftest.py           # tmp_db fixture
+│   │   ├── test_config.py        # Config + emergency keyword tests
+│   │   ├── test_database.py      # DB layer tests
+│   │   └── test_routers/         # Router integration tests (96 total)
+│   │       ├── conftest.py       # TestClient + JWT helper fixtures
+│   │       ├── test_auth.py      # Login, me, admin CRUD, change-password
+│   │       ├── test_sessions.py  # Session management + ownership enforcement
+│   │       └── test_health.py    # Health endpoint
 │   ├── Dockerfile
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx           # Router + providers
-│   │   ├── design-system.css # All CSS — pc- prefix, dark mode, responsive
-│   │   ├── contexts/         # AuthContext, ThemeContext, ToastContext, LayoutContext
+│   │   ├── App.jsx             # Router + providers (ErrorBoundary wraps all)
+│   │   ├── design-system.css   # All CSS — pc- prefix, dark mode, responsive
+│   │   ├── contexts/           # AuthContext, ThemeContext, ToastContext, LayoutContext
+│   │   ├── hooks/
+│   │   │   └── useCurrentPrincipal.js  # Shared role/name/initials hook
 │   │   ├── components/
-│   │   │   ├── layout/       # Sidebar, TopBar
-│   │   │   └── ui/           # Icon, Card, Toast
-│   │   ├── pages/            # LoginPage, DashboardPage, ChatPage,
-│   │   │                     #   DocumentsPage, AnalyticsPage, AdminsPage, SettingsPage
+│   │   │   ├── layout/         # Sidebar (dark-mode toggle, mobile drawer), TopBar
+│   │   │   ├── ui/             # Icon, Card, Toast
+│   │   │   └── ErrorBoundary.jsx
+│   │   ├── pages/              # LoginPage, DashboardPage, ChatPage,
+│   │   │                       #   DocumentsPage, AnalyticsPage, AdminsPage, SettingsPage
 │   │   └── services/
-│   │       └── api.js        # Full API client with SSE streaming
-│   ├── Dockerfile            # Multi-stage: build → nginx
-│   └── nginx.conf            # SPA fallback + /api/ proxy + SSE headers
+│   │       └── api.js          # API client + SSE streaming + AbortController
+│   ├── Dockerfile              # Multi-stage: node:20.19.1-alpine → nginx
+│   └── nginx.conf              # SPA fallback + /api/ proxy + SSE headers
 │
 ├── data/
 │   ├── pdfs/                 # Source PDFs (Aspirin.pdf, Medic.pdf)
@@ -292,10 +303,12 @@ data: {"done": true, "content": "...\n\n*Sources: Aspirin.pdf*", "sources": ["As
 ```bash
 cd backend
 pytest tests/ -v
-# 62 tests — no OpenAI API key required
+# 96 tests — no OpenAI API key required
 ```
 
-Tests cover: config validation, emergency keyword detection (EN + AR), PDF ingestion, hash deduplication, FAISS fingerprinting, analytics logging, admin CRUD, session/message CRUD, and user CRUD.
+Tests cover:
+- **Unit** (62): config validation, emergency keyword detection (EN + AR), PDF ingestion, hash deduplication, FAISS fingerprinting, analytics logging, admin CRUD, session/message CRUD, user CRUD.
+- **Router** (34): auth login/logout, `/me`, admin management, change-password, session list/get/delete, ownership enforcement, health check — all run against a live TestClient with an isolated in-memory DB, no OpenAI calls.
 
 ---
 

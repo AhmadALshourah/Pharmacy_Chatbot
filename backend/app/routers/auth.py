@@ -99,7 +99,9 @@ def toggle_admin_active(admin_id: int, admin: dict = Depends(require_master_admi
     target = get_admin_by_id(admin_id)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Admin not found.")
-    set_admin_active(admin_id, not target["is_active"])
+    updated_ok = set_admin_active(admin_id, not target["is_active"])
+    if not updated_ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Admin not found.")
     updated = get_admin_by_id(admin_id)
     return AdminInfo(**{k: v for k, v in updated.items() if k != "password_hash"})
 

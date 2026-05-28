@@ -1,18 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/layout/Sidebar';
 import TopBar from '../components/layout/TopBar';
 import Card from '../components/ui/Card';
 import Icon from '../components/ui/Icon';
 import { useToast } from '../contexts/ToastContext';
+import { useCurrentPrincipal } from '../hooks/useCurrentPrincipal';
 import { getAdmins, createAdmin, deleteAdmin, toggleAdminStatus } from '../services/api';
 
 export default function AdminsPage() {
-  const { admin } = useAuth();
-  const role      = admin?.role ?? 'admin';
-  const name      = admin?.username ?? 'Admin';
-  const initials  = name.slice(0, 2).toUpperCase();
-
+  const { role, name, initials, admin } = useCurrentPrincipal();  // M5
   const toast = useToast();
 
   const [admins,  setAdmins]  = useState([]);

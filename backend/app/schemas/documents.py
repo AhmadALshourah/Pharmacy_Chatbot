@@ -17,6 +17,7 @@ class DocumentInfo(BaseModel):
     filename: str
     page_count: int
     file_size: int
+    chunk_count: int = 0   # C8: was missing — always showed 0 in the UI
     created_at: str
 
 

@@ -1,25 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/layout/Sidebar';
 import TopBar from '../components/layout/TopBar';
 import Card from '../components/ui/Card';
 import Icon from '../components/ui/Icon';
 import { useToast } from '../contexts/ToastContext';
+import { useCurrentPrincipal } from '../hooks/useCurrentPrincipal';
 import { getDocuments, uploadDocument, deleteDocument, rebuildIndex } from '../services/api';
 
 export default function DocumentsPage() {
-  const { admin } = useAuth();
-  const role      = admin?.role ?? 'admin';
-  const name      = admin?.username ?? 'Admin';
-  const initials  = name.slice(0, 2).toUpperCase();
-
+  const { role, name, initials } = useCurrentPrincipal();  // M5
   const toast = useToast();
 
-  const [docs,       setDocs]       = useState([]);
-  const [uploading,  setUploading]  = useState(false);
-  const [uploadPct,  setUploadPct]  = useState(0);
-  const [uploadName, setUploadName] = useState('');
-  const [rebuilding, setRebuilding] = useState(false);
+  const [docs,        setDocs]        = useState([]);
+  const [uploading,   setUploading]   = useState(false);
+  const [uploadStage, setUploadStage] = useState('');   // C10: honest stage label
+  const [uploadName,  setUploadName]  = useState('');
+  const [rebuilding,  setRebuilding]  = useState(false);
   const [lastRebuild, setLastRebuild] = useState(null);
   const fileRef = useRef(null);
 
@@ -29,7 +25,7 @@ export default function DocumentsPage() {
     try {
       const data = await getDocuments();
       setDocs(data || []);
-    } catch { /* noop */ }
+    } catch { /* noop — list stays empty on network error; user can refresh */ }
   }
 
   async function handleFileChange(e) {
@@ -38,20 +34,25 @@ export default function DocumentsPage() {
 
     setUploadName(file.name);
     setUploading(true);
-    setUploadPct(0);
-
-    const interval = setInterval(() => setUploadPct(p => Math.min(p + 12, 90)), 300);
+    // C10: honest two-stage label instead of a fake percentage ticker
+    setUploadStage('Uploading…');
     try {
-      await uploadDocument(file);
-      setUploadPct(100);
+      // The server ingests + embeds synchronously — we mark "embedding" right
+      // after the fetch begins so the user knows what's happening.
+      const uploadPromise = uploadDocument(file);
+      // Give a brief moment before switching label (upload bytes transferred)
+      await new Promise(r => setTimeout(r, 400));
+      setUploadStage('Embedding…  (this may take a moment)');
+      await uploadPromise;
+      setUploadStage('Done ✓');
       await loadDocs();
       toast.success(`${file.name} ingested successfully.`);
-      setTimeout(() => { setUploading(false); setUploadName(''); }, 1200);
+      setTimeout(() => { setUploading(false); setUploadName(''); setUploadStage(''); }, 1500);
     } catch (err) {
       toast.error(err.message || 'Upload failed. Try again.');
       setUploading(false);
+      setUploadStage('');
     } finally {
-      clearInterval(interval);
       e.target.value = '';
     }
   }
@@ -181,17 +182,16 @@ export default function DocumentsPage() {
                   <input ref={fileRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={handleFileChange} />
 
                   {uploading && (
+                    /* C10: honest stage label — no fake percentage ticker */
                     <div style={{ marginTop: 14, padding: 12, background: 'var(--pc-surface-2)', borderRadius: 10, border: '1px solid var(--pc-divider)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                        <div style={{ width: 26, height: 32, borderRadius: 4, background: 'var(--pc-danger-soft)', color: 'var(--pc-danger)', display: 'grid', placeItems: 'center', fontSize: 8, fontWeight: 700 }}>PDF</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 26, height: 32, borderRadius: 4, background: 'var(--pc-danger-soft)', color: 'var(--pc-danger)', display: 'grid', placeItems: 'center', fontSize: 8, fontWeight: 700, flexShrink: 0 }}>PDF</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 550, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadName}</div>
-                          <div style={{ fontSize: 11.5, color: 'var(--pc-text-3)' }}>{uploadPct < 100 ? 'embedding…' : 'done'}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--pc-primary)' }}>{uploadStage}</div>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--pc-primary)', fontWeight: 600 }} className="pc-mono">{uploadPct}%</div>
-                      </div>
-                      <div style={{ height: 4, background: 'var(--pc-divider)', borderRadius: 2, overflow: 'hidden' }}>
-                        <div style={{ width: `${uploadPct}%`, height: '100%', background: 'var(--pc-primary)', transition: 'width .3s' }} />
+                        {/* Indeterminate spinner */}
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--pc-primary-soft)', borderTopColor: 'var(--pc-primary)', animation: 'spin .8s linear infinite', flexShrink: 0 }} />
                       </div>
                     </div>
                   )}

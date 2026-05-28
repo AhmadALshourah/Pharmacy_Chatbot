@@ -17,7 +17,7 @@ if not os.getenv("OPENAI_API_KEY"):
     print("Create a .env file based on .env.example and add your key.")
     sys.exit(1)
 
-from app.config import ROOT_DIR
+from app.config import ROOT_DIR, JWT_SECRET_IS_WEAK, CORS_ORIGINS
 from app.database import init_db, admin_exists, create_admin, user_exists, create_user
 from app.services.rag_service import RAGService
 from app.services.auth_service import hash_password
@@ -26,7 +26,7 @@ from app.routers import health, chat, documents, analytics, auth, sessions, user
 # ── Logging ──────────────────────────────────────────────────────────────────
 
 LOG_DIR = ROOT_DIR / "logs"
-LOG_DIR.mkdir(exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)   # M8: parents=True prevents FileNotFoundError
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,6 +39,13 @@ logging.basicConfig(
 )
 
 log = logging.getLogger("pharmacy")
+
+# C2: warn loudly if the JWT secret is still the placeholder value
+if JWT_SECRET_IS_WEAK:
+    log.warning(
+        "⚠️  JWT_SECRET_KEY is using the insecure default placeholder. "
+        "Set a strong random value in your .env file before deploying to production."
+    )
 
 # ── Seed default admin accounts ──────────────────────────────────────────────
 
@@ -109,15 +116,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow the React dev server and production origins
+# C5: CORS origins from CORS_ORIGINS env var (comma-separated).
+# Default covers localhost dev only. In production set e.g.:
+#   CORS_ORIGINS=https://aspira.example.com
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",   # Vite dev server (default)
-        "http://localhost:5174",   # Vite dev server (fallback)
-        "http://localhost:5175",   # Vite dev server (fallback)
-        "http://localhost:3000",   # Production frontend (nginx)
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

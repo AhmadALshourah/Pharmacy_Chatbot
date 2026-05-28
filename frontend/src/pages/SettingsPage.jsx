@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/layout/Sidebar';
 import TopBar from '../components/layout/TopBar';
 import Card from '../components/ui/Card';
 import Icon from '../components/ui/Icon';
+import { useCurrentPrincipal } from '../hooks/useCurrentPrincipal';
 import { changePassword } from '../services/api';
 
 function PasswordStrength({ value }) {
@@ -31,12 +31,8 @@ function PasswordStrength({ value }) {
 }
 
 export default function SettingsPage() {
-  const { admin, logout } = useAuth();
-  const navigate          = useNavigate();
-  const role     = admin?.role ?? 'admin';
-  const name     = admin?.username ?? 'Admin';
-  const initials = name.slice(0, 2).toUpperCase();
-  const isMaster = role === 'master_admin';
+  const { role, name, initials, isMaster, admin, logout } = useCurrentPrincipal();  // M5
+  const navigate = useNavigate();
 
   const [pwForm,   setPwForm]   = useState({ current: '', newPw: '', confirm: '' });
   const [pwError,  setPwError]  = useState('');
@@ -99,8 +95,16 @@ export default function SettingsPage() {
                     <input className="pc-input" defaultValue={name} disabled style={{ background: 'var(--pc-surface-2)', color: 'var(--pc-text-3)' }} />
                   </div>
                   <div className="pc-field">
+                    {/* H16: email has no save endpoint — disabled until PATCH /api/auth/me is built */}
                     <label className="pc-label">Email</label>
-                    <input className="pc-input" defaultValue={admin?.email ?? ''} placeholder="your@email.com" />
+                    <input
+                      className="pc-input"
+                      defaultValue={admin?.email ?? ''}
+                      disabled
+                      title="Email changes are not yet supported"
+                      style={{ background: 'var(--pc-surface-2)', color: 'var(--pc-text-3)' }}
+                    />
+                    <div className="pc-help">Contact an admin to change your email address.</div>
                   </div>
                 </div>
               </Card>

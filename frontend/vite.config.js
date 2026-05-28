@@ -6,8 +6,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // L11: target reads from VITE_API_URL env (Node-land, not browser)
+      // so the dev server can point to a remote backend without editing this file.
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env['VITE_API_URL'] || 'http://localhost:8000',
         changeOrigin: true,
       },
     },
