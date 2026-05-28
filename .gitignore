@@ -1,35 +1,40 @@
-# Secrets — NEVER commit these
+# ── Secrets ────────────────────────────────────────────────────────────────────
 .env
 
-# Virtual environment
-.venv/
-venv/
-env/
-
-# Python cache
+# ── Python ─────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.Python
+.venv/
+venv/
+env/
+*.egg-info/
 
-# Generated / large files
-pharmacy.db
-pharmacy.faiss
-pharmacy.faiss.meta
+# ── Node ───────────────────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+
+# ── Data (generated at runtime) ────────────────────────────────────────────────
+data/*.db
+data/*.faiss
+data/*.faiss.meta
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
 logs/
+*.log
 
-# Test / lint cache
+# ── Test / lint cache ──────────────────────────────────────────────────────────
 .pytest_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 
-# IDEs
+# ── IDEs ───────────────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 
-# OS
+# ── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

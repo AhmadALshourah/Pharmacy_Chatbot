@@ -1,14 +1,26 @@
 services:
-  chatbot:
-    build: .
+  backend:
+    build: ./backend
     ports:
-      - "7860:7860"
+      - "8000:8000"
     env_file:
       - .env
     volumes:
-      # Persist the database and FAISS index between container restarts
-      - ./pharmacy.db:/app/pharmacy.db
-      - ./pharmacy.faiss:/app/pharmacy.faiss
-      - ./pharmacy.faiss.meta:/app/pharmacy.faiss.meta
-      - ./logs:/app/logs
+      - ./data:/data          # DATA_DIR resolves to /data inside the container
+      - ./backend/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
     restart: unless-stopped

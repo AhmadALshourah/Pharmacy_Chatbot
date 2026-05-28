@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Aspira — Pharmacy Chatbot Design</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;550;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="design-system.css"/>
+
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; transition: background .2s ease; }
+  body { font-family: 'Geist', system-ui, sans-serif; }
+
+  /* Design canvas surrounding tone follows the active theme so dark screens
+     don't sit on a bright cream backdrop. */
+  html[data-pc-theme="dark"], html[data-pc-theme="dark"] body { background: #0A0D0C; }
+
+  /* The design canvas hosts each screen as a non-scaled artboard. */
+  .screen-host {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--pc-bg);
+  }
+</style>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="shared.jsx"></script>
+<script type="text/babel" src="screens-admin.jsx"></script>
+<script type="text/babel" src="screens-chat.jsx"></script>
+
+<script type="text/babel">
+const { useEffect } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "#1F5F4A",
+  "theme": "dark"
+}/*EDITMODE-END*/;
+
+// For each accent we keep two palettes — one for light surfaces (deep + pastel
+// softs) and one for dark surfaces (brighter primary + low-alpha tinted softs).
+const ACCENTS = {
+  '#1F5F4A': { // Sage
+    light: { primary: '#1F5F4A', hover: '#194E3D', soft: '#E6EFEA',                  soft2: '#D2E2D9' },
+    dark:  { primary: '#5FBE9D', hover: '#7BCDAF', soft: 'rgba(95,190,157,0.14)',    soft2: 'rgba(95,190,157,0.22)' },
+  },
+  '#1F4F8C': { // Ocean
+    light: { primary: '#1F4F8C', hover: '#173F73', soft: '#E6EDF6',                  soft2: '#CDDCEC' },
+    dark:  { primary: '#7AAAE0', hover: '#94BCE8', soft: 'rgba(122,170,224,0.14)',   soft2: 'rgba(122,170,224,0.22)' },
+  },
+  '#5A2A6A': { // Plum
+    light: { primary: '#5A2A6A', hover: '#481F56', soft: '#EFE3F4',                  soft2: '#DDC5E5' },
+    dark:  { primary: '#C295DC', hover: '#D0ACE5', soft: 'rgba(194,149,220,0.14)',   soft2: 'rgba(194,149,220,0.22)' },
+  },
+  '#26261F': { // Graphite
+    light: { primary: '#26261F', hover: '#1A1A14', soft: '#EAE8E0',                  soft2: '#D5D2C5' },
+    dark:  { primary: '#D6D2C2', hover: '#E5E1D2', soft: 'rgba(214,210,194,0.14)',   soft2: 'rgba(214,210,194,0.22)' },
+  },
+};
+
+const App = () => {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  useEffect(() => {
+    const r = document.documentElement;
+    const isDark = tweaks.theme === 'dark';
+
+    // Theme attribute drives all the [data-pc-theme="dark"] rules in design-system.css.
+    r.setAttribute('data-pc-theme', isDark ? 'dark' : 'light');
+
+    const key = (tweaks.accent || '').toLowerCase();
+    const match = Object.entries(ACCENTS).find(([k]) => k.toLowerCase() === key);
+    const set = match ? match[1] : ACCENTS['#1F5F4A'];
+    const a = isDark ? set.dark : set.light;
+
+    r.style.setProperty('--pc-primary', a.primary);
+    r.style.setProperty('--pc-primary-hover', a.hover);
+    r.style.setProperty('--pc-primary-soft', a.soft);
+    r.style.setProperty('--pc-primary-soft-2', a.soft2);
+    r.style.setProperty('--pc-role-user', a.primary);
+    r.style.setProperty('--pc-role-user-soft', a.soft);
+  }, [tweaks.accent, tweaks.theme]);
+
+  // Each screen is 1440 × 900, except the wider chat (1480 × 900)
+  const W = 1440, H = 900;
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection id="auth" title="Authentication" subtitle="Public · single login with role toggle">
+          <DCArtboard id="login-admin" label="Login · Admin" width={W} height={H}>
+            <div className="screen-host"><LoginScreen role="admin"/></div>
+          </DCArtboard>
+          <DCArtboard id="login-user" label="Login · User" width={W} height={H}>
+            <div className="screen-host"><LoginScreen role="user"/></div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="admin-workspace" title="Admin Workspace" subtitle="Master Admin + Admin · full management">
+          <DCArtboard id="dashboard" label="Overview" width={W} height={H}>
+            <div className="screen-host"><DashboardScreen/></div>
+          </DCArtboard>
+          <DCArtboard id="chat-admin" label="Chat · streaming" width={W} height={H}>
+            <div className="screen-host"><ChatScreen user={false}/></div>
+          </DCArtboard>
+          <DCArtboard id="chat-emergency" label="Chat · emergency" width={W} height={H}>
+            <div className="screen-host"><ChatEmergencyScreen/></div>
+          </DCArtboard>
+          <DCArtboard id="documents" label="Documents · upload" width={W} height={H}>
+            <div className="screen-host"><DocumentsScreen/></div>
+          </DCArtboard>
+          <DCArtboard id="analytics" label="Analytics" width={W} height={H}>
+            <div className="screen-host"><AnalyticsScreen/></div>
+          </DCArtboard>
+          <DCArtboard id="admins" label="Admin management" width={W} height={H}>
+            <div className="screen-host"><AdminsScreen/></div>
+          </DCArtboard>
+          <DCArtboard id="settings" label="Settings" width={W} height={H}>
+            <div className="screen-host"><SettingsScreen/></div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="user-workspace" title="User Workspace" subtitle="Chat-only experience for end users">
+          <DCArtboard id="user-empty" label="User chat · welcome" width={W} height={H}>
+            <div className="screen-host"><UserChatEmptyScreen/></div>
+          </DCArtboard>
+          <DCArtboard id="user-chat" label="User chat · in conversation" width={W} height={H}>
+            <div className="screen-host"><ChatScreen user={true}/></div>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="Appearance">
+          <TweakRadio
+            label="Theme"
+            value={tweaks.theme}
+            options={['light', 'dark']}
+            onChange={v => setTweak('theme', v)}
+          />
+        </TweakSection>
+        <TweakSection title="Accent palette">
+          <TweakColor
+            label="Primary"
+            value={tweaks.accent}
+            onChange={v => setTweak('accent', v)}
+            options={Object.keys(ACCENTS)}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

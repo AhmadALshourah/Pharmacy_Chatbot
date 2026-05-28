@@ -7,8 +7,12 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  backend:
+    name: Backend (Python 3.12)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +26,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -32,12 +36,36 @@ jobs:
           pip install -r requirements.txt
           pip install pytest ruff
 
-      - name: Lint with ruff
+      - name: Lint (ruff)
         run: ruff check .
 
-      - name: Run tests
+      - name: Test (62 tests, no API key required)
         env:
-          # Tests use an isolated tmp SQLite DB and never call the OpenAI API,
-          # but the chatbot module checks for the key at import time.
           OPENAI_API_KEY: sk-test-placeholder
         run: pytest tests/ -v --tb=short
+
+  frontend:
+    name: Frontend (Node 20)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Build (Vite)
+        run: npm run build

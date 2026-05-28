@@ -1,11 +1,25 @@
-.venv/
+# Python
 __pycache__/
 *.pyc
 *.pyo
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Secrets & local config
 .env
 .git/
 .gitignore
-tests/
+.idea/
+
+# Docs
+*.md
 ideas.md
+
+# Logs (mounted as volumes)
 logs/
 *.log

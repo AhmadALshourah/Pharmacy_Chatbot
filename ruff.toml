@@ -1,5 +1,0 @@
-[lint]
-# E402: module-level import not at top of file.
-# Chatbot.py and ingest.py deliberately call load_dotenv() / API-key check
-# before importing LangChain/OpenAI modules, so this rule is suppressed there.
-per-file-ignores = { "Chatbot.py" = ["E402"], "ingest.py" = ["E402"] }
