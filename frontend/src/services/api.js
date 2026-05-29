@@ -52,6 +52,15 @@ async function request(path, options = {}) {
 
 // ── Admin auth ────────────────────────────────────────────────────────────────
 
+export async function register(username, email, password, remember = true) {
+  const data = await request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, email, password }),
+  });
+  token.set(data.access_token, 'admin', remember);
+  return { ...data.admin, principalType: 'admin' };
+}
+
 export async function login(username, password, remember = true) {
   const data = await request('/auth/login', {
     method: 'POST',
@@ -74,6 +83,15 @@ export async function changePassword(current_password, new_password) {
 }
 
 // ── User auth ─────────────────────────────────────────────────────────────────
+
+export async function registerUser(username, email, password, remember = true) {
+  const data = await request('/user/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, email, password }),
+  });
+  token.set(data.access_token, 'user', remember);
+  return { ...data.user, principalType: 'user' };
+}
 
 export async function userLogin(username, password, remember = true) {
   const data = await request('/user/login', {

@@ -1,11 +1,26 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from '../components/ui/Icon';
 
 export default function LoginPage() {
-  const { login, loginUser } = useAuth();
-  const navigate             = useNavigate();
+  const { login, loginUser, principal, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // While restoring session — render nothing rather than the login form,
+  // otherwise a user with a valid token sees a momentary "sign in" flash.
+  if (loading) {
+    return (
+      <div className="pc-app" style={{ height: '100vh', display: 'grid', placeItems: 'center' }}>
+        <div style={{ fontSize: 13, color: 'var(--pc-text-3)' }}>Loading…</div>
+      </div>
+    );
+  }
+
+  // Already signed in — send to the right home page
+  if (principal) {
+    return <Navigate to={principal.principalType === 'user' ? '/user/chat' : '/dashboard'} replace />;
+  }
 
   const [role,     setRole]     = useState('admin');
   const [form,     setForm]     = useState({ username: '', password: '' });
@@ -179,7 +194,15 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div style={{ marginTop: 24, padding: 12, background: 'var(--pc-surface-2)', border: '1px solid var(--pc-divider)', borderRadius: 10, fontSize: 12, color: 'var(--pc-text-2)', display: 'flex', gap: 10 }}>
+            {/* Create account link */}
+            <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: 'var(--pc-text-3)' }}>
+              Don't have an account?{' '}
+              <Link to="/register" style={{ color: 'var(--pc-primary)', fontWeight: 550, textDecoration: 'none' }}>
+                Create one
+              </Link>
+            </div>
+
+            <div style={{ marginTop: 16, padding: 12, background: 'var(--pc-surface-2)', border: '1px solid var(--pc-divider)', borderRadius: 10, fontSize: 12, color: 'var(--pc-text-2)', display: 'flex', gap: 10 }}>
               <Icon name="alert" size={14} color="var(--pc-warn)" />
               <div>Aspira does not provide diagnoses. Replies always recommend consulting a licensed pharmacist.</div>
             </div>

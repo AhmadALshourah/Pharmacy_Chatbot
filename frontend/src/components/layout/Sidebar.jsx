@@ -97,7 +97,7 @@ export default function Sidebar({ active, role = 'master_admin', name, initials 
           )}
 
           <div className="pc-nav-section">Account</div>
-          <NavItem icon="settings" label="Settings" active={active === 'settings'} onClick={() => navigate_('/settings')} />
+          <NavItem icon="settings" label="Settings" active={active === 'settings'} onClick={() => navigate_(isUser ? '/user/settings' : '/settings')} />
         </nav>
 
         {/* User row + theme toggle */}

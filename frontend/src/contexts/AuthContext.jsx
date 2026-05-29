@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, userLogin as apiUserLogin, getMe, getUserMe, token } from '../services/api';
+import {
+  login as apiLogin, userLogin as apiUserLogin,
+  register as apiRegister, registerUser as apiRegisterUser,
+  getMe, getUserMe, token,
+} from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -29,9 +33,23 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  // Admin self-registration
+  const register = useCallback(async (username, email, password, remember = true) => {
+    const data = await apiRegister(username, email, password, remember);
+    setPrincipal(data);
+    return data;
+  }, []);
+
   // User login
   const loginUser = useCallback(async (username, password, remember = true) => {
     const data = await apiUserLogin(username, password, remember);
+    setPrincipal(data);
+    return data;
+  }, []);
+
+  // User self-registration
+  const registerUser = useCallback(async (username, email, password, remember = true) => {
+    const data = await apiRegisterUser(username, email, password, remember);
     setPrincipal(data);
     return data;
   }, []);
@@ -49,7 +67,7 @@ export function AuthProvider({ children }) {
   const admin   = isAdmin ? principal : null;
 
   return (
-    <AuthContext.Provider value={{ principal, admin, isUser, isAdmin, loading, login, loginUser, logout }}>
+    <AuthContext.Provider value={{ principal, admin, isUser, isAdmin, loading, login, register, loginUser, registerUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -608,6 +608,18 @@ def user_exists(username: str) -> bool:
         return row is not None
 
 
+def user_email_exists(email: str) -> bool:
+    with _connect() as db:
+        row = db.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone()
+        return row is not None
+
+
+def admin_email_exists(email: str) -> bool:
+    with _connect() as db:
+        row = db.execute("SELECT 1 FROM admins WHERE email = ?", (email,)).fetchone()
+        return row is not None
+
+
 # ── User session functions ────────────────────────────────────────────────────
 
 def create_user_session(user_id: int, title: str) -> int:

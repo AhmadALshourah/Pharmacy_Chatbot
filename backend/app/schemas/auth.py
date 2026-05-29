@@ -36,4 +36,11 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8)
 
 
+class AdminRegisterRequest(BaseModel):
+    """Public self-registration — always creates a regular 'admin' (not master_admin)."""
+    username: str      = Field(..., min_length=3, max_length=50)
+    email:    EmailStr
+    password: str      = Field(..., min_length=8, description="Minimum 8 characters")
+
+
 TokenResponse.model_rebuild()

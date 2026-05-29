@@ -5,18 +5,43 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.database import (
     get_admin_by_username, get_all_admins, create_admin,
-    admin_exists, delete_admin, update_admin_password,
+    admin_exists, admin_email_exists, delete_admin, update_admin_password,
     set_admin_active, get_admin_by_id,
 )
 from app.services.auth_service import verify_password, hash_password, create_access_token
 from app.schemas.auth import (
     LoginRequest, TokenResponse, AdminInfo,
-    CreateAdminRequest, ChangePasswordRequest,
+    CreateAdminRequest, ChangePasswordRequest, AdminRegisterRequest,
 )
 from app.dependencies import get_current_admin, require_master_admin
 
 log = logging.getLogger("pharmacy")
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+# ── Public registration ───────────────────────────────────────────────────────
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register(body: AdminRegisterRequest):
+    """Self-register a new admin account (role='admin'). Auto-logs in on success."""
+    if admin_exists(body.username):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Username '{body.username}' is already taken.",
+        )
+    if admin_email_exists(body.email):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Email '{body.email}' is already registered.",
+        )
+    new_id = create_admin(body.username, body.email, hash_password(body.password), "admin")
+    admin  = get_admin_by_id(new_id)
+    token  = create_access_token(admin["id"], admin["username"], admin["role"])
+    log.info(f"Admin self-registered: {admin['username']}")
+    return TokenResponse(
+        access_token=token,
+        admin=AdminInfo(**{k: v for k, v in admin.items() if k != "password_hash"}),
+    )
 
 
 # ── Login / Me ────────────────────────────────────────────────────────────────

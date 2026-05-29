@@ -31,7 +31,7 @@ function PasswordStrength({ value }) {
 }
 
 export default function SettingsPage() {
-  const { role, name, initials, isMaster, admin, logout } = useCurrentPrincipal();  // M5
+  const { role, name, initials, isMaster, isUser, admin, logout } = useCurrentPrincipal();  // M5
   const navigate = useNavigate();
 
   const [pwForm,   setPwForm]   = useState({ current: '', newPw: '', confirm: '' });
@@ -74,77 +74,93 @@ export default function SettingsPage() {
               {/* Profile */}
               <Card title="Profile" sub="Your personal information">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
-                  <div className="pc-avatar" style={{ width: 64, height: 64, fontSize: 22, background: isMaster ? 'var(--pc-role-master)' : 'var(--pc-role-admin)' }}>
+                  <div className="pc-avatar" style={{
+                    width: 64, height: 64, fontSize: 22,
+                    background: isMaster ? 'var(--pc-role-master)' : isUser ? 'var(--pc-role-user)' : 'var(--pc-role-admin)',
+                  }}>
                     {initials}
                   </div>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 16 }}>{name}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--pc-text-3)', marginTop: 2 }}>
-                      {admin?.email ?? 'No email set'}
-                    </div>
+                    {!isUser && (
+                      <div style={{ fontSize: 12.5, color: 'var(--pc-text-3)', marginTop: 2 }}>
+                        {admin?.email ?? 'No email set'}
+                      </div>
+                    )}
                     <div style={{ marginTop: 6 }}>
-                      <span className={`pc-badge ${isMaster ? 'pc-badge-master' : 'pc-badge-admin'}`}>
-                        {isMaster ? 'Master Admin' : 'Admin'}
+                      <span className={`pc-badge ${isMaster ? 'pc-badge-master' : isUser ? 'pc-badge-user' : 'pc-badge-admin'}`}>
+                        {isMaster ? 'Master Admin' : isUser ? 'User' : 'Admin'}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isUser ? '1fr' : '1fr 1fr', gap: 14 }}>
                   <div className="pc-field">
                     <label className="pc-label">Username</label>
                     <input className="pc-input" defaultValue={name} disabled style={{ background: 'var(--pc-surface-2)', color: 'var(--pc-text-3)' }} />
                   </div>
-                  <div className="pc-field">
-                    {/* H16: email has no save endpoint — disabled until PATCH /api/auth/me is built */}
-                    <label className="pc-label">Email</label>
-                    <input
-                      className="pc-input"
-                      defaultValue={admin?.email ?? ''}
-                      disabled
-                      title="Email changes are not yet supported"
-                      style={{ background: 'var(--pc-surface-2)', color: 'var(--pc-text-3)' }}
-                    />
-                    <div className="pc-help">Contact an admin to change your email address.</div>
-                  </div>
+                  {!isUser && (
+                    <div className="pc-field">
+                      {/* H16: email has no save endpoint — disabled until PATCH /api/auth/me is built */}
+                      <label className="pc-label">Email</label>
+                      <input
+                        className="pc-input"
+                        defaultValue={admin?.email ?? ''}
+                        disabled
+                        title="Email changes are not yet supported"
+                        style={{ background: 'var(--pc-surface-2)', color: 'var(--pc-text-3)' }}
+                      />
+                      <div className="pc-help">Contact an admin to change your email address.</div>
+                    </div>
+                  )}
                 </div>
               </Card>
 
-              {/* Change password */}
-              <Card title="Change password" sub="Use a strong unique password">
-                <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div className="pc-field">
-                    <label className="pc-label">Current password</label>
-                    <input className="pc-input" type="password" value={pwForm.current}
-                      onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))} placeholder="••••••••••••" />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* Change password — admin only (no user endpoint on backend yet) */}
+              {!isUser ? (
+                <Card title="Change password" sub="Use a strong unique password">
+                  <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div className="pc-field">
-                      <label className="pc-label">New password</label>
-                      <input className="pc-input" type="password" value={pwForm.newPw}
-                        onChange={e => setPwForm(p => ({ ...p, newPw: e.target.value }))} placeholder="••••••••••••" />
-                      <PasswordStrength value={pwForm.newPw} />
+                      <label className="pc-label">Current password</label>
+                      <input className="pc-input" type="password" value={pwForm.current}
+                        onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))} placeholder="••••••••••••" />
                     </div>
-                    <div className="pc-field">
-                      <label className="pc-label">Confirm new password</label>
-                      <input className="pc-input" type="password" value={pwForm.confirm}
-                        onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))} placeholder="••••••••••••" />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="pc-field">
+                        <label className="pc-label">New password</label>
+                        <input className="pc-input" type="password" value={pwForm.newPw}
+                          onChange={e => setPwForm(p => ({ ...p, newPw: e.target.value }))} placeholder="••••••••••••" />
+                        <PasswordStrength value={pwForm.newPw} />
+                      </div>
+                      <div className="pc-field">
+                        <label className="pc-label">Confirm new password</label>
+                        <input className="pc-input" type="password" value={pwForm.confirm}
+                          onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))} placeholder="••••••••••••" />
+                      </div>
                     </div>
+                    {pwError && (
+                      <div style={{ fontSize: 12.5, color: 'var(--pc-danger)', display: 'flex', gap: 6 }}>
+                        <Icon name="alert" size={13} /> {pwError}
+                      </div>
+                    )}
+                    {pwOk && (
+                      <div style={{ fontSize: 12.5, color: 'var(--pc-success)', display: 'flex', gap: 6 }}>
+                        <Icon name="check" size={13} /> Password updated successfully.
+                      </div>
+                    )}
+                    <button type="submit" className="pc-btn pc-btn-primary" style={{ alignSelf: 'flex-start', marginTop: 4 }} disabled={saving}>
+                      {saving ? 'Saving…' : 'Update password'}
+                    </button>
+                  </form>
+                </Card>
+              ) : (
+                <Card title="Change password" sub="Password management">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--pc-text-2)', fontSize: 13 }}>
+                    <Icon name="alert" size={15} color="var(--pc-text-3)" />
+                    Password changes for user accounts are managed by your administrator.
                   </div>
-                  {pwError && (
-                    <div style={{ fontSize: 12.5, color: 'var(--pc-danger)', display: 'flex', gap: 6 }}>
-                      <Icon name="alert" size={13} /> {pwError}
-                    </div>
-                  )}
-                  {pwOk && (
-                    <div style={{ fontSize: 12.5, color: 'var(--pc-success)', display: 'flex', gap: 6 }}>
-                      <Icon name="check" size={13} /> Password updated successfully.
-                    </div>
-                  )}
-                  <button type="submit" className="pc-btn pc-btn-primary" style={{ alignSelf: 'flex-start', marginTop: 4 }} disabled={saving}>
-                    {saving ? 'Saving…' : 'Update password'}
-                  </button>
-                </form>
-              </Card>
+                </Card>
+              )}
 
               {/* Session */}
               <Card title="Session" sub="JWT token management">

@@ -388,7 +388,7 @@ export default function ChatPage({ userRole = false }) {
                     </div>
                   </div>
                 ) : (
-                  sessions.map(s => (
+                  visible.map(s => (
                     <div
                       key={s.id}
                       className={`pc-session${activeSession?.id === s.id ? ' active' : ''}`}
