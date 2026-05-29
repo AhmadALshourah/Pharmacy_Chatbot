@@ -21,6 +21,7 @@ from app.config import ROOT_DIR, JWT_SECRET_IS_WEAK, CORS_ORIGINS
 from app.database import init_db, admin_exists, create_admin, user_exists, create_user
 from app.services.rag_service import RAGService
 from app.services.auth_service import hash_password
+from app.ingest import auto_ingest_pdfs
 from app.routers import health, chat, documents, analytics, auth, sessions, user_auth, user_sessions
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -95,10 +96,11 @@ def _seed_users():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: init DB, seed admins and users, load RAG service."""
+    """Startup: init DB, seed admins and users, auto-ingest PDFs, load RAG service."""
     init_db()
     _seed_admins()
     _seed_users()
+    auto_ingest_pdfs()
 
     rag = RAGService()
     rag.initialize()

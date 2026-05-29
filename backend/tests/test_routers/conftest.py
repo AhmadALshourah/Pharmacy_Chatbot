@@ -22,6 +22,7 @@ def client(tmp_path, monkeypatch):
     """TestClient with an isolated temporary database."""
     monkeypatch.setattr("app.database.DB_PATH", tmp_path / "test.db")
     monkeypatch.setattr("app.config.DATA_DIR", tmp_path)
+    monkeypatch.setattr("app.ingest.PDFS_DIR", tmp_path / "pdfs")  # keep auto-ingest off real data
     (tmp_path / "pdfs").mkdir(exist_ok=True)
 
     from app.main import app

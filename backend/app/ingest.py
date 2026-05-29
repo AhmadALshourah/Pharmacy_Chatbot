@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import logging
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 
@@ -18,7 +19,9 @@ load_dotenv(find_dotenv())
 from PyPDF2 import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
-from app.config import EMBEDDING_MODEL, FAISS_INDEX_PATH, FAISS_META_PATH, DATA_DIR
+from app.config import EMBEDDING_MODEL, FAISS_INDEX_PATH, FAISS_META_PATH, PDFS_DIR
+
+log = logging.getLogger("pharmacy")
 
 from app.database import (
     init_db,
@@ -110,6 +113,46 @@ def process_file(filepath, embeddings, uploaded_by: int | None = None, safe_name
     return True
 
 
+def auto_ingest_pdfs(pdfs_dir: Path | None = None) -> int:
+    """Scan a directory for PDFs and ingest any not already in the database.
+
+    Called at startup from main.py lifespan. Uses logging instead of print().
+    Skips files already ingested (SHA256 hash dedup via process_file).
+
+    Returns the number of newly ingested documents.
+    """
+    target_dir = pdfs_dir or PDFS_DIR
+
+    if not target_dir.exists():
+        log.info(f"Auto-ingest: directory does not exist, skipping: {target_dir}")
+        return 0
+
+    pdf_files = sorted(target_dir.glob("*.pdf"))
+    if not pdf_files:
+        log.info(f"Auto-ingest: no PDF files found in {target_dir}")
+        return 0
+
+    log.info(f"Auto-ingest: scanning {len(pdf_files)} PDF(s) in {target_dir}")
+
+    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    added = 0
+
+    for pdf_path in pdf_files:
+        try:
+            if process_file(pdf_path, embeddings):
+                added += 1
+                log.info(f"Auto-ingest: ingested {pdf_path.name}")
+        except Exception as e:
+            log.error(f"Auto-ingest: failed to process {pdf_path.name}: {type(e).__name__}: {e}")
+
+    if added > 0:
+        log.info(f"Auto-ingest: {added} new document(s) ingested")
+    else:
+        log.info("Auto-ingest: all files already in database, nothing new to ingest")
+
+    return added
+
+
 def cmd_ingest(paths):
     embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
     added = 0
@@ -198,8 +241,7 @@ def main():
         cmd_ingest(args.files)
     else:
         # Default: ingest all PDFs from data/pdfs/
-        pdfs_dir = DATA_DIR / "pdfs"
-        cmd_ingest_dir(pdfs_dir)
+        cmd_ingest_dir(PDFS_DIR)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from pathlib import Path
 # backend/app/ → backend/ → project root
 ROOT_DIR = Path(__file__).parent.parent
 DATA_DIR = ROOT_DIR.parent / "data"
+PDFS_DIR = DATA_DIR / "pdfs"
 
 # ── Authentication ────────────────────────────────────────────────────────────
 _JWT_DEFAULT = "change-this-secret-in-production-please"
