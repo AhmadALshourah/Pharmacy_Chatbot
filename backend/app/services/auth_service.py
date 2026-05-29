@@ -1,21 +1,28 @@
-"""Authentication service: JWT tokens and password hashing."""
+"""Authentication service: JWT tokens and password hashing.
 
+Uses the `bcrypt` library directly instead of passlib, which is unmaintained
+and incompatible with bcrypt >= 4.0.
+"""
+
+import bcrypt as _bcrypt
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.config import JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRE_MINUTES
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(plain: str) -> str:
-    return _pwd_context.hash(plain)
+    """Hash a plain-text password with bcrypt. Returns a UTF-8 string."""
+    return _bcrypt.hashpw(plain.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_context.verify(plain, hashed)
+    """Verify a plain-text password against a bcrypt hash."""
+    try:
+        return _bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_access_token(admin_id: int, username: str, role: str) -> str:
