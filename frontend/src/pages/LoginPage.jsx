@@ -7,6 +7,14 @@ export default function LoginPage() {
   const { login, loginUser, principal, loading } = useAuth();
   const navigate = useNavigate();
 
+  // All hooks must come before any conditional returns (React rules of hooks)
+  const [role,       setRole]       = useState('admin');
+  const [form,       setForm]       = useState({ username: '', password: '' });
+  const [showPw,     setShowPw]     = useState(false);
+  const [remember,   setRemember]   = useState(true);   // M11: keep-me-signed-in state
+  const [error,      setError]      = useState('');
+  const [submitting, setSubmitting] = useState(false);  // local form-submit spinner
+
   // While restoring session — render nothing rather than the login form,
   // otherwise a user with a valid token sees a momentary "sign in" flash.
   if (loading) {
@@ -22,13 +30,6 @@ export default function LoginPage() {
     return <Navigate to={principal.principalType === 'user' ? '/user/chat' : '/dashboard'} replace />;
   }
 
-  const [role,     setRole]     = useState('admin');
-  const [form,     setForm]     = useState({ username: '', password: '' });
-  const [showPw,   setShowPw]   = useState(false);
-  const [remember, setRemember] = useState(true);   // M11: keep-me-signed-in state
-  const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
-
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
@@ -40,7 +41,7 @@ export default function LoginPage() {
       setError('Please enter username and password.');
       return;
     }
-    setLoading(true);
+    setSubmitting(true);
     try {
       if (role === 'user') {
         await loginUser(form.username.trim(), form.password, remember);
@@ -52,7 +53,7 @@ export default function LoginPage() {
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
@@ -134,7 +135,7 @@ export default function LoginPage() {
                   onChange={handleChange}
                   autoComplete="username"
                   placeholder={role === 'admin' ? 'e.g. master_admin' : 'e.g. Ahmad'}
-                  disabled={loading}
+                  disabled={submitting}
                   style={{ width: '100%' }}
                 />
               </div>
@@ -152,7 +153,7 @@ export default function LoginPage() {
                     onChange={handleChange}
                     autoComplete="current-password"
                     placeholder="••••••••••"
-                    disabled={loading}
+                    disabled={submitting}
                     style={{ width: '100%', paddingRight: 38 }}
                   />
                   <button
@@ -186,11 +187,11 @@ export default function LoginPage() {
               <button
                 type="submit"
                 className="pc-btn pc-btn-primary"
-                disabled={loading}
-                style={{ height: 42, justifyContent: 'center', marginTop: 8, opacity: loading ? 0.6 : 1 }}
+                disabled={submitting}
+                style={{ height: 42, justifyContent: 'center', marginTop: 8, opacity: submitting ? 0.6 : 1 }}
               >
-                {loading ? 'Signing in…' : 'Sign in'}
-                {!loading && <Icon name="arrowRight" size={14} stroke={2} />}
+                {submitting ? 'Signing in…' : 'Sign in'}
+                {!submitting && <Icon name="arrowRight" size={14} stroke={2} />}
               </button>
             </form>
 

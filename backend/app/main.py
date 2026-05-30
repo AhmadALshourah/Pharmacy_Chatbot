@@ -17,7 +17,16 @@ if not os.getenv("OPENAI_API_KEY"):
     print("Create a .env file based on .env.example and add your key.")
     sys.exit(1)
 
-from app.config import ROOT_DIR, JWT_SECRET_IS_WEAK, CORS_ORIGINS
+# Check JWT secret BEFORE importing app.config so we read from env directly
+# (app.config may have been imported earlier by tests, caching the stale default)
+_JWT_DEFAULT = "change-this-secret-in-production-please"
+if os.getenv("JWT_SECRET_KEY", _JWT_DEFAULT) == _JWT_DEFAULT:
+    print("Error: JWT_SECRET_KEY is set to the insecure default placeholder.")
+    print("Set a strong random value in .env before starting the server.")
+    print('Generate one with: python -c "import secrets; print(secrets.token_hex(32))"')
+    sys.exit(1)
+
+from app.config import ROOT_DIR, CORS_ORIGINS
 from app.database import init_db, admin_exists, create_admin, user_exists, create_user
 from app.services.rag_service import RAGService
 from app.services.auth_service import hash_password
@@ -40,13 +49,6 @@ logging.basicConfig(
 )
 
 log = logging.getLogger("pharmacy")
-
-# C2: warn loudly if the JWT secret is still the placeholder value
-if JWT_SECRET_IS_WEAK:
-    log.warning(
-        "⚠️  JWT_SECRET_KEY is using the insecure default placeholder. "
-        "Set a strong random value in your .env file before deploying to production."
-    )
 
 # ── Seed default admin accounts ──────────────────────────────────────────────
 

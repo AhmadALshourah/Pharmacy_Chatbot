@@ -179,7 +179,7 @@ export default function ChatPage({ userRole = false }) {
         }),
       }));
       setMessages(fmt);
-    } catch {
+    } catch { /* noop — show empty chat if messages fail to load; user can retry by re-selecting */
       setMessages([]);
     }
   }

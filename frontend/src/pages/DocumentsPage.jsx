@@ -12,6 +12,7 @@ export default function DocumentsPage() {
   const toast = useToast();
 
   const [docs,        setDocs]        = useState([]);
+  const [docFilter,   setDocFilter]   = useState('');
   const [uploading,   setUploading]   = useState(false);
   const [uploadStage, setUploadStage] = useState('');   // C10: honest stage label
   const [uploadName,  setUploadName]  = useState('');
@@ -81,7 +82,10 @@ export default function DocumentsPage() {
     }
   }
 
-  const totalChunks = docs.reduce((s, d) => s + (d.chunk_count ?? 0), 0);
+  const totalChunks  = docs.reduce((s, d) => s + (d.chunk_count ?? 0), 0);
+  const visibleDocs  = docFilter
+    ? docs.filter(d => d.filename.toLowerCase().includes(docFilter.toLowerCase()))
+    : docs;
 
   return (
     <div className="pc-app" style={{ height: '100vh' }}>
@@ -112,7 +116,13 @@ export default function DocumentsPage() {
                 padded={false}
                 action={
                   <div style={{ position: 'relative' }}>
-                    <input className="pc-input" style={{ width: 200, height: 32, paddingLeft: 32, fontSize: 12.5 }} placeholder="Search documents…" />
+                    <input
+                      className="pc-input"
+                      style={{ width: 200, height: 32, paddingLeft: 32, fontSize: 12.5 }}
+                      placeholder="Search documents…"
+                      value={docFilter}
+                      onChange={e => setDocFilter(e.target.value)}
+                    />
                     <div style={{ position: 'absolute', left: 10, top: 8, color: 'var(--pc-text-3)' }}><Icon name="search" size={14} /></div>
                   </div>
                 }
@@ -120,6 +130,10 @@ export default function DocumentsPage() {
                 {docs.length === 0 ? (
                   <div style={{ padding: 40, textAlign: 'center', color: 'var(--pc-text-3)', fontSize: 13 }}>
                     No documents yet. Upload a PDF to get started.
+                  </div>
+                ) : visibleDocs.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--pc-text-3)', fontSize: 13 }}>
+                    No documents match <strong>"{docFilter}"</strong>.
                   </div>
                 ) : (
                   <table className="pc-table">
@@ -133,7 +147,7 @@ export default function DocumentsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {docs.map(d => (
+                      {visibleDocs.map(d => (
                         <tr key={d.id}>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

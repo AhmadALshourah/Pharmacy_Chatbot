@@ -100,13 +100,21 @@ class RAGService:
         return idx
 
     def reload_index(self) -> int:
-        """Reload FAISS index after new documents are ingested.
+        """Reload FAISS index after documents are added or removed.
 
-        Returns the total number of vectors in the index.
+        Returns the total number of vectors in the index (0 if no documents).
         """
         rows = get_all_chunks()
         self.contents = [r[1] for r in rows]
         self.sources = [r[3] for r in rows]
+
+        if not rows:
+            # All documents were deleted — clear the index gracefully
+            self.index = None
+            self.cache.clear()
+            log.info("Index reloaded — no documents, index cleared")
+            return 0
+
         self.index = self._build_and_save_index(rows)
 
         # Re-init models if first document was just added

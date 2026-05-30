@@ -44,7 +44,8 @@ export default function AnalyticsPage() {
   // While data is loading (null) show placeholder chart; once loaded use real values
   // (including 0 — don't fall back to fake numbers when the DB is genuinely empty)
   const isLoaded = data !== null;
-  const bars    = data?.daily_counts ?? [22,28,24,36,30,42,38,51,46,58,53,68,62,72,70,84,78,92,86,96,90,102,98,110,106,118,112,124];
+  // M12: use a flat-zero baseline while loading instead of hardcoded fake spikes
+  const bars    = data?.daily_counts ?? Array(28).fill(0);
   const maxBar  = Math.max(...bars, 1);
 
   const totalQueries    = isLoaded ? (data.total     ?? 0)    : '—';

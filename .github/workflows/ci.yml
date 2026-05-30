@@ -39,9 +39,10 @@ jobs:
       - name: Lint (ruff)
         run: ruff check .
 
-      - name: Test (62 tests, no API key required)
+      - name: Test (96 tests, no API key required)
         env:
           OPENAI_API_KEY: sk-test-placeholder
+          JWT_SECRET_KEY: ci-test-secret-not-for-production
         run: pytest tests/ -v --tb=short
 
   frontend:

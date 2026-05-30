@@ -1,3 +1,8 @@
+/**
+ * @param {{ title?: string, sub?: string, action?: import('react').ReactNode,
+ *           children?: import('react').ReactNode, padded?: boolean,
+ *           style?: import('react').CSSProperties }} props
+ */
 export default function Card({ title, sub, action, children, padded = true, style }) {
   return (
     <div className="pc-card" style={style}>
