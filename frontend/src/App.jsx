@@ -13,8 +13,9 @@ import DashboardPage  from './pages/DashboardPage';
 import ChatPage       from './pages/ChatPage';
 import DocumentsPage  from './pages/DocumentsPage';
 import AnalyticsPage  from './pages/AnalyticsPage';
-import AdminsPage     from './pages/AdminsPage';
-import SettingsPage   from './pages/SettingsPage';
+import AdminsPage          from './pages/AdminsPage';
+import SettingsPage        from './pages/SettingsPage';
+import ConversationsPage   from './pages/ConversationsPage';
 
 /**
  * Replaces the old catch-all <Navigate to="/dashboard">.
@@ -44,7 +45,8 @@ export default function App() {
 
                 {/* Admin-only routes */}
                 <Route path="/dashboard" element={<ProtectedRoute requireAdmin><DashboardPage /></ProtectedRoute>} />
-                <Route path="/chat"      element={<ProtectedRoute requireAdmin><ChatPage /></ProtectedRoute>} />
+                <Route path="/chat"          element={<ProtectedRoute requireAdmin><ChatPage /></ProtectedRoute>} />
+                <Route path="/conversations" element={<ProtectedRoute requireAdmin><ConversationsPage /></ProtectedRoute>} />
                 <Route path="/documents" element={<ProtectedRoute requireAdmin><DocumentsPage /></ProtectedRoute>} />
                 <Route path="/analytics" element={<ProtectedRoute requireAdmin><AnalyticsPage /></ProtectedRoute>} />
                 <Route path="/admins"    element={<ProtectedRoute requireMaster><AdminsPage /></ProtectedRoute>} />

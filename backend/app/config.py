@@ -23,6 +23,11 @@ CORS_ORIGINS: list[str] = [
 # ── Upload limits ─────────────────────────────────────────────────────────────
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024   # 20 MB
 
+# ── Chat image attachments ────────────────────────────────────────────────────
+MAX_IMAGES_PER_MESSAGE = 3
+MAX_IMAGE_BYTES        = 4 * 1024 * 1024   # 4 MB per image (decoded)
+ALLOWED_IMAGE_MIME = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+
 # ── FAISS cache (#8) ──────────────────────────────────────────────────────────
 FAISS_INDEX_PATH = DATA_DIR / "pharmacy.faiss"
 FAISS_META_PATH  = DATA_DIR / "pharmacy.faiss.meta"
@@ -31,7 +36,7 @@ FAISS_META_PATH  = DATA_DIR / "pharmacy.faiss.meta"
 # WARNING: changing EMBEDDING_MODEL requires re-running `python ingest.py`
 # to rebuild embeddings — mixing models breaks similarity search.
 EMBEDDING_MODEL    = "text-embedding-ada-002"
-CHAT_MODEL         = "gpt-4o-mini"
+CHAT_MODEL         = "gpt-4.1"
 CHAT_TEMPERATURE   = 0.3
 RETRIEVAL_TOP_K    = 4
 

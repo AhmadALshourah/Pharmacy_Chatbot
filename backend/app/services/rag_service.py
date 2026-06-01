@@ -153,6 +153,7 @@ class RAGService:
         history: list[dict],
         admin_id: int | None = None,
         rate_limit_key: str = "global",
+        images: list[str] | None = None,
     ) -> Generator[str | dict, None, None]:
         """Generate a streaming response for the given message.
 
@@ -164,10 +165,15 @@ class RAGService:
             history:         Prior messages [{"role": "user"|"assistant", ...}].
             admin_id:        Admin ID for analytics attribution (None for users).
             rate_limit_key:  Per-principal key for the rate limiter (e.g. "admin_1").
+            images:          Optional list of base64 data URIs attached to *this*
+                             user turn (sent to a vision-capable model).
 
         Yields:
             Cumulative response text (each yield replaces the previous).
         """
+        images = images or []
+        has_images = bool(images)
+
         # Validate input
         valid, query = self.validate(message)
         if not valid:
@@ -179,21 +185,23 @@ class RAGService:
             yield "Too many requests. Please wait a moment and try again."
             return
 
-        # Emergency detection
+        # Emergency detection (text-only — keywords don't apply to images)
         if self.is_emergency(query):
             log.warning(f"Emergency detected: {query[:60]!r}")
             log_query(len(query), None, set(), is_emergency=True, is_cached=False, admin_id=admin_id)
             yield EMERGENCY_RESPONSE
             return
 
-        # Service readiness check
+        # Service readiness check — images alone aren't enough if RAG isn't loaded
         if not self.is_ready:
             yield "No documents loaded. Please upload a PDF first."
             return
 
-        # Cache lookup (only for context-free queries)
+        # Cache lookup (only for context-free, image-free queries — image bytes
+        # make the cache key unreliable and the response depends on what's
+        # actually visible in the picture)
         cache_key = query.lower().strip()
-        if not history:
+        if not history and not has_images:
             cached = self.cache.get(cache_key)
             if cached:
                 log.info(f"Cache hit: {cache_key[:50]!r}")
@@ -202,7 +210,9 @@ class RAGService:
                 return
 
         start = time.time()
-        log.info(f"Query ({len(query)} chars): {query[:100]!r}")
+        log.info(
+            f"Query ({len(query)} chars, {len(images)} image(s)): {query[:100]!r}"
+        )
 
         try:
             # Embed the query
@@ -227,10 +237,34 @@ class RAGService:
             ]
             for msg in history:
                 if msg["role"] == "user":
-                    messages.append(HumanMessage(content=msg["content"]))
+                    hist_imgs = msg.get("images") or []
+                    if hist_imgs:
+                        # Replay images attached to prior turns so the model
+                        # can answer follow-up questions about them.
+                        blocks: list[dict] = [{"type": "text", "text": msg["content"]}]
+                        for data_url in hist_imgs:
+                            blocks.append({
+                                "type": "image_url",
+                                "image_url": {"url": data_url},
+                            })
+                        messages.append(HumanMessage(content=blocks))
+                    else:
+                        messages.append(HumanMessage(content=msg["content"]))
                 elif msg["role"] == "assistant":
                     messages.append(AIMessage(content=msg["content"]))
-            messages.append(HumanMessage(content=query))
+
+            # Latest user turn — multimodal content list when images are attached,
+            # plain string otherwise (cheaper to serialise).
+            if has_images:
+                content_blocks: list[dict] = [{"type": "text", "text": query}]
+                for data_url in images:
+                    content_blocks.append({
+                        "type": "image_url",
+                        "image_url": {"url": data_url},
+                    })
+                messages.append(HumanMessage(content=content_blocks))
+            else:
+                messages.append(HumanMessage(content=query))
 
             # Stream response
             full_response = ""
@@ -239,17 +273,16 @@ class RAGService:
                 yield full_response
 
             # L12: yield a structured sentinel as the last item so the router
-            # never needs to parse "*Sources:*" back out of plain text.
-            source_list = ", ".join(sorted(cited_sources))
-            final = f"{full_response}\n\n*Sources: {source_list}*"
-            yield {"type": "done", "content": final, "sources": sorted(cited_sources)}
+            # never needs to parse sources back out of plain text.
+            yield {"type": "done", "content": full_response, "sources": sorted(cited_sources)}
 
             elapsed_ms = int((time.time() - start) * 1000)
             log.info(f"Response: {elapsed_ms}ms | sources={sorted(cited_sources)}")
 
-            # Cache stores the formatted string (with citations appended)
-            if not history:
-                self.cache.set(cache_key, final)
+            # Skip caching when images were involved — same text, different
+            # picture should not collide on the LRU key.
+            if not history and not has_images:
+                self.cache.set(cache_key, full_response)
             log_query(len(query), elapsed_ms, cited_sources, is_emergency=False, is_cached=False, admin_id=admin_id)
 
         except Exception as e:

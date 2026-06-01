@@ -31,7 +31,7 @@ from app.database import init_db, admin_exists, create_admin, user_exists, creat
 from app.services.rag_service import RAGService
 from app.services.auth_service import hash_password
 from app.ingest import auto_ingest_pdfs
-from app.routers import health, chat, documents, analytics, auth, sessions, user_auth, user_sessions
+from app.routers import health, chat, documents, analytics, auth, sessions, user_auth, user_sessions, admin_conversations
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
@@ -140,4 +140,5 @@ app.include_router(documents.router,      prefix="/api")
 app.include_router(analytics.router,      prefix="/api")
 app.include_router(sessions.router,       prefix="/api")
 app.include_router(user_auth.router,      prefix="/api")
-app.include_router(user_sessions.router,  prefix="/api")
+app.include_router(user_sessions.router,         prefix="/api")
+app.include_router(admin_conversations.router,   prefix="/api")

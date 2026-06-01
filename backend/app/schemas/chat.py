@@ -8,6 +8,8 @@ class ChatMessage(BaseModel):
     """A single message in the conversation history."""
     role: Literal["user", "assistant"]
     content: str
+    # Optional image attachments — base64 data URIs (e.g. "data:image/png;base64,...")
+    images: list[str] = Field(default_factory=list)
 
 
 class ChatRequest(BaseModel):
@@ -18,6 +20,8 @@ class ChatRequest(BaseModel):
         default=None,
         description="Existing session to append to. Omit to create a new session.",
     )
+    # base64 data URIs attached to *this* user turn — passed to the vision LLM
+    images: list[str] = Field(default_factory=list)
 
 
 class ChatSessionResponse(BaseModel):
@@ -36,3 +40,5 @@ class ChatMessageRecord(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     created_at: str
+    # Data URIs persisted alongside the message so reloading history shows them.
+    images: list[str] = Field(default_factory=list)

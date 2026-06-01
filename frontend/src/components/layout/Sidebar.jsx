@@ -85,6 +85,9 @@ export default function Sidebar({ active, role = 'master_admin', name, initials 
             onClick={() => navigate_(isUser ? '/user/chat' : '/chat')}
           />
           {!isUser && (
+            <NavItem icon="inbox" label="Conversations" active={active === 'conversations'} onClick={() => navigate_('/conversations')} />
+          )}
+          {!isUser && (
             <NavItem icon="doc"   label="Documents" active={active === 'docs'}      onClick={() => navigate_('/documents')} />
           )}
           {!isUser && (

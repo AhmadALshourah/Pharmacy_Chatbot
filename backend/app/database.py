@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import hashlib
 from datetime import date, timedelta
@@ -5,6 +6,24 @@ import numpy as np
 from contextlib import contextmanager
 
 from app.config import DATA_DIR
+
+
+def _encode_images(images) -> str | None:
+    """JSON-encode an image list (data URIs) for storage. None when empty."""
+    if not images:
+        return None
+    return json.dumps(list(images), ensure_ascii=False)
+
+
+def _decode_images(raw) -> list[str]:
+    """Parse the stored JSON back into a list; tolerate NULL / legacy rows."""
+    if not raw:
+        return []
+    try:
+        decoded = json.loads(raw)
+        return decoded if isinstance(decoded, list) else []
+    except (ValueError, TypeError):
+        return []
 
 DB_PATH = DATA_DIR / "pharmacy.db"
 
@@ -141,9 +160,23 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_user_sessions      ON user_sessions(user_id);
         CREATE INDEX IF NOT EXISTS idx_user_messages      ON user_messages(session_id);
 
+        -- ── Admin ↔ User support threads ─────────────────────────────────────────
+
+        CREATE TABLE IF NOT EXISTS support_messages (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id   INTEGER NOT NULL,
+            sender_type  TEXT    NOT NULL CHECK(sender_type IN ('admin', 'user')),
+            sender_id    INTEGER NOT NULL,
+            sender_name  TEXT    NOT NULL,
+            content      TEXT    NOT NULL,
+            created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (session_id) REFERENCES user_sessions(id) ON DELETE CASCADE
+        );
+
         -- H10: indexes on hot query paths that were missing
         CREATE INDEX IF NOT EXISTS idx_documents_hash     ON documents(file_hash);
         CREATE INDEX IF NOT EXISTS idx_documents_created  ON documents(created_at);
+        CREATE INDEX IF NOT EXISTS idx_support_messages   ON support_messages(session_id);
     """)
 
     # ── Column migrations in a separate connection (executescript auto-commits) ─
@@ -152,6 +185,9 @@ def init_db():
                                "INTEGER REFERENCES admins(id) ON DELETE SET NULL")
         _add_column_if_missing(conn, "analytics", "admin_id",
                                "INTEGER REFERENCES admins(id) ON DELETE SET NULL")
+        # Image attachments per message — JSON-encoded list of base64 data URIs
+        _add_column_if_missing(conn, "chat_messages", "images", "TEXT")
+        _add_column_if_missing(conn, "user_messages", "images", "TEXT")
 
 
 # ── Admin functions ───────────────────────────────────────────────────────────
@@ -271,12 +307,18 @@ def get_chat_sessions(admin_id: int) -> list[dict]:
                  "created_at": r[3], "updated_at": r[4]} for r in rows]
 
 
-def add_chat_message(session_id: int, role: str, content: str) -> int:
+def add_chat_message(
+    session_id: int,
+    role: str,
+    content: str,
+    images: list[str] | None = None,
+) -> int:
     """Append a message to a session and bump updated_at on the session."""
     with _connect() as db:
         cursor = db.execute(
-            "INSERT INTO chat_messages (session_id, role, content) VALUES (?, ?, ?)",
-            (session_id, role, content),
+            "INSERT INTO chat_messages (session_id, role, content, images) "
+            "VALUES (?, ?, ?, ?)",
+            (session_id, role, content, _encode_images(images)),
         )
         db.execute(
             "UPDATE chat_sessions SET updated_at = datetime('now') WHERE id = ?",
@@ -291,12 +333,13 @@ def get_chat_messages(session_id: int) -> list[dict]:
         rows = db.execute(
             # H9: ORDER BY id (monotonic PK) instead of TEXT created_at
             # which can mis-sort messages inserted within the same second
-            "SELECT id, session_id, role, content, created_at "
+            "SELECT id, session_id, role, content, created_at, images "
             "FROM chat_messages WHERE session_id = ? ORDER BY id",
             (session_id,),
         ).fetchall()
         return [{"id": r[0], "session_id": r[1], "role": r[2],
-                 "content": r[3], "created_at": r[4]} for r in rows]
+                 "content": r[3], "created_at": r[4],
+                 "images": _decode_images(r[5])} for r in rows]
 
 
 def delete_chat_session(session_id: int) -> None:
@@ -655,11 +698,17 @@ def get_user_sessions(user_id: int) -> list[dict]:
                  "created_at": r[3], "updated_at": r[4]} for r in rows]
 
 
-def add_user_message(session_id: int, role: str, content: str) -> int:
+def add_user_message(
+    session_id: int,
+    role: str,
+    content: str,
+    images: list[str] | None = None,
+) -> int:
     with _connect() as db:
         cursor = db.execute(
-            "INSERT INTO user_messages (session_id, role, content) VALUES (?, ?, ?)",
-            (session_id, role, content),
+            "INSERT INTO user_messages (session_id, role, content, images) "
+            "VALUES (?, ?, ?, ?)",
+            (session_id, role, content, _encode_images(images)),
         )
         db.execute(
             "UPDATE user_sessions SET updated_at = datetime('now') WHERE id = ?",
@@ -672,14 +721,68 @@ def get_user_messages(session_id: int) -> list[dict]:
     with _connect() as db:
         rows = db.execute(
             # H9: ORDER BY id, same reasoning as get_chat_messages
-            "SELECT id, session_id, role, content, created_at "
+            "SELECT id, session_id, role, content, created_at, images "
             "FROM user_messages WHERE session_id = ? ORDER BY id",
             (session_id,),
         ).fetchall()
         return [{"id": r[0], "session_id": r[1], "role": r[2],
-                 "content": r[3], "created_at": r[4]} for r in rows]
+                 "content": r[3], "created_at": r[4],
+                 "images": _decode_images(r[5])} for r in rows]
 
 
 def delete_user_session(session_id: int) -> None:
     with _connect() as db:
         db.execute("DELETE FROM user_sessions WHERE id = ?", (session_id,))
+
+
+# ── Admin conversation monitoring ─────────────────────────────────────────────
+
+def get_all_user_sessions_for_admin() -> list[dict]:
+    """Return all user sessions with the username — for admin conversation monitoring."""
+    with _connect() as db:
+        rows = db.execute(
+            "SELECT us.id, us.user_id, u.username, us.title, us.created_at, us.updated_at "
+            "FROM user_sessions us "
+            "JOIN users u ON u.id = us.user_id "
+            "ORDER BY us.updated_at DESC",
+        ).fetchall()
+        return [{"id": r[0], "user_id": r[1], "username": r[2], "title": r[3],
+                 "created_at": r[4], "updated_at": r[5]} for r in rows]
+
+
+def get_support_messages(session_id: int) -> list[dict]:
+    """Return all support thread messages for a user session."""
+    with _connect() as db:
+        rows = db.execute(
+            "SELECT id, session_id, sender_type, sender_id, sender_name, content, created_at "
+            "FROM support_messages WHERE session_id = ? ORDER BY id",
+            (session_id,),
+        ).fetchall()
+        return [{"id": r[0], "session_id": r[1], "sender_type": r[2],
+                 "sender_id": r[3], "sender_name": r[4], "content": r[5],
+                 "created_at": r[6]} for r in rows]
+
+
+def add_support_message(
+    session_id: int,
+    sender_type: str,
+    sender_id: int,
+    sender_name: str,
+    content: str,
+) -> dict:
+    """Insert a support message and return the full record."""
+    with _connect() as db:
+        cursor = db.execute(
+            "INSERT INTO support_messages (session_id, sender_type, sender_id, sender_name, content) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (session_id, sender_type, sender_id, sender_name, content),
+        )
+        msg_id = cursor.lastrowid
+        row = db.execute(
+            "SELECT id, session_id, sender_type, sender_id, sender_name, content, created_at "
+            "FROM support_messages WHERE id = ?",
+            (msg_id,),
+        ).fetchone()
+        return {"id": row[0], "session_id": row[1], "sender_type": row[2],
+                "sender_id": row[3], "sender_name": row[4], "content": row[5],
+                "created_at": row[6]}

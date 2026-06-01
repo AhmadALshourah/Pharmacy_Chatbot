@@ -169,10 +169,18 @@ export async function getSessionMessages(sessionId) {
  * H13: accepts an AbortSignal so callers can genuinely cancel the underlying
  * fetch (not just break the JS loop — that leaves the server streaming).
  */
-export async function* streamChat(message, sessionId, history = [], signal) {
+export async function* streamChat(message, sessionId, history = [], signal, images = []) {
   const body = {
     message,
-    history: history.map(m => ({ role: m.role, content: m.content })),
+    history: history.map(m => ({
+      role: m.role,
+      content: m.content,
+      // Historical images are kept in the request shape for round-tripping,
+      // but the backend currently only feeds the *latest* turn's images to
+      // the vision model. Sending them back is harmless and future-proof.
+      images: Array.isArray(m.images) ? m.images : [],
+    })),
+    images: Array.isArray(images) ? images : [],
   };
   // Only include session_id if we have a real one (not null/undefined)
   if (sessionId != null) body.session_id = sessionId;
@@ -242,6 +250,40 @@ export async function deleteDocument(docId) {
 
 export async function rebuildIndex() {
   return request('/documents/rebuild', { method: 'POST' });
+}
+
+// ── Admin: conversation monitoring ────────────────────────────────────────────
+
+export async function getAdminConversations() {
+  return request('/admin/conversations');
+}
+
+export async function getAdminConversationMessages(sessionId) {
+  return request(`/admin/conversations/${sessionId}/messages`);
+}
+
+export async function getAdminConversationSupport(sessionId) {
+  return request(`/admin/conversations/${sessionId}/support`);
+}
+
+export async function sendAdminSupportMessage(sessionId, content) {
+  return request(`/admin/conversations/${sessionId}/support`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+
+// ── User: support thread (reading admin messages + replying) ──────────────────
+
+export async function getUserSessionSupport(sessionId) {
+  return request(`/user/sessions/${sessionId}/support`);
+}
+
+export async function sendUserSupportReply(sessionId, content) {
+  return request(`/user/sessions/${sessionId}/support`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

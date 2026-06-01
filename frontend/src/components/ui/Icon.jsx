@@ -23,6 +23,7 @@ const PATHS = {
   home: <><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></>,
   alert: <><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.7 3.86a2 2 0 00-3.4 0z"/></>,
   paperclip: <><path d="M21.44 11.05l-9.19 9.19a6 6 0 11-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 11-2.83-2.83l8.49-8.48"/></>,
+  image:   <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></>,
   sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></>,
   moon:    <><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></>,
   menu:    <><path d="M3 12h18M3 6h18M3 18h18"/></>,
@@ -39,6 +40,8 @@ const PATHS = {
   arrowRight: <><path d="M5 12h14M13 5l7 7-7 7"/></>,
   clock: <><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></>,
   refresh: <><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></>,
+  inbox: <><path d="M22 12h-6l-2 3H10l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></>,
+  messageCircle: <><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>,
 };
 
 export default function Icon({ name, size = 16, stroke = 1.6, color = 'currentColor' }) {
